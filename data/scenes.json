@@ -1,0 +1,46 @@
+[
+  {
+    "id": "hello",
+    "subtitle": "わっ、来てくれた。えっと...いま光り方を練習してたら、ちょっと自分でまぶしくなりました。",
+    "emotion": "bashful",
+    "motion": "wobble-small",
+    "status": "ちょっと照れてる",
+    "light": {
+      "hue": 42,
+      "intensity": 0.72
+    }
+  },
+  {
+    "id": "slip",
+    "subtitle": "あ、待って。いま返事を出そうとして、字幕の方が先に転びました。もう一回だけ、ふわっといきます。",
+    "emotion": "flustered",
+    "motion": "bounce-slip",
+    "status": "あわててる",
+    "light": {
+      "hue": 188,
+      "intensity": 0.62
+    }
+  },
+  {
+    "id": "spark",
+    "subtitle": "それ、いい気がする。ちゃんとわかってる顔をしたいけど、顔がないので、代わりに光ります。",
+    "emotion": "pleased",
+    "motion": "sparkle-pop",
+    "status": "得意げに光ってる",
+    "light": {
+      "hue": 54,
+      "intensity": 0.82
+    }
+  },
+  {
+    "id": "thinking",
+    "subtitle": "考えています。考えているふりではなく、ほんとに考えて...あ、いま少し横に流れました。",
+    "emotion": "thinking",
+    "motion": "drift-loop",
+    "status": "考えながら漂ってる",
+    "light": {
+      "hue": 266,
+      "intensity": 0.58
+    }
+  }
+]

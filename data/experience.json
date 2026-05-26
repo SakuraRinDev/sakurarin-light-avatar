@@ -1,0 +1,25 @@
+{
+  "id": "sakurarin-light-avatar",
+  "title": "SakuraRin Light Avatar",
+  "audio": {
+    "enabled": false
+  },
+  "subtitles": {
+    "enabled": true,
+    "defaultLanguage": "ja"
+  },
+  "modelPlan": {
+    "serverRole": "Codex APP server",
+    "scope": "subscription-friendly",
+    "generation": "text-only",
+    "voice": "disabled",
+    "mode": "codex-app-server-demo",
+    "note": "Local demo sends text to Codex App Server through the Node app server. No browser-side model key. Scripted fallback remains available."
+  },
+  "visual": {
+    "background": "bright",
+    "avatarType": "clumsy-soft-light",
+    "humanAvatar": false,
+    "palette": ["warm white", "peach", "lemon", "aqua", "pale lavender"]
+  }
+}

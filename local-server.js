@@ -1,0 +1,197 @@
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { CodexAppServerBridge } = require('./codex-bridge');
+
+const rootDir = __dirname;
+const dataDir = path.join(rootDir, 'data');
+const reactionsFile = path.join(dataDir, 'reactions.jsonl');
+const port = Number(process.env.PORT || 5182);
+const codexBridge = new CodexAppServerBridge({ cwd: rootDir });
+
+function readJson(name) {
+  return JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8'));
+}
+
+function sendJson(res, status, payload) {
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+  });
+  res.end(JSON.stringify(payload, null, 2));
+}
+
+function sendText(res, status, text) {
+  res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(text);
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 128 * 1024) {
+        reject(new Error('request body too large'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+function contentType(filePath) {
+  if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
+  if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
+  if (filePath.endsWith('.js')) return 'application/javascript; charset=utf-8';
+  if (filePath.endsWith('.json')) return 'application/json; charset=utf-8';
+  if (filePath.endsWith('.png')) return 'image/png';
+  if (filePath.endsWith('.svg')) return 'image/svg+xml; charset=utf-8';
+  return 'application/octet-stream';
+}
+
+function safeText(value, fallback = '') {
+  return String(value || fallback).trim().slice(0, 240);
+}
+
+function pickReply(message, scenes) {
+  const text = message.toLowerCase();
+  if (text.includes('かわいい') || text.includes('いいね')) return scenes.find((scene) => scene.id === 'spark');
+  if (text.includes('まぶ') || text.includes('明る')) return scenes.find((scene) => scene.id === 'slip');
+  if (text.includes('なに') || text.includes('何') || text.includes('?') || text.includes('？')) {
+    return scenes.find((scene) => scene.id === 'thinking');
+  }
+  return scenes[Math.floor(Math.random() * scenes.length)];
+}
+
+function sceneForCodexReply(message, scenes) {
+  const scene = pickReply(message, scenes) || scenes[0];
+  return {
+    ...scene,
+    status: 'Codexから返事中',
+    motion: scene.motion || 'wobble-small',
+  };
+}
+
+function serveStatic(req, res, pathname) {
+  const requested = pathname === '/' ? '/index.html' : pathname;
+  const filePath = path.normalize(path.join(rootDir, requested));
+  if (!filePath.startsWith(rootDir)) {
+    sendText(res, 403, 'Forbidden');
+    return;
+  }
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+    res.writeHead(200, { 'content-type': contentType(filePath) });
+    res.end(data);
+  });
+}
+
+async function handleApi(req, res, pathname) {
+  const experience = readJson('experience.json');
+  const scenes = readJson('scenes.json');
+
+  if (req.method === 'GET' && pathname === '/api/health') {
+    sendJson(res, 200, {
+      ok: true,
+      service: 'sakurarin-light-avatar',
+      audio: false,
+      subtitles: true,
+      serverRole: experience.modelPlan.serverRole,
+      dialogueProvider: 'codex-app-server',
+    });
+    return true;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/experience') {
+    sendJson(res, 200, { ok: true, experience });
+    return true;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/scenes') {
+    sendJson(res, 200, { ok: true, scenes });
+    return true;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/session') {
+    sendJson(res, 201, {
+      ok: true,
+      sessionId: `sess_${Date.now()}`,
+      scene: scenes[0],
+    });
+    return true;
+  }
+
+  if (req.method === 'POST' && (pathname === '/api/chat' || pathname === '/api/dialogue')) {
+    try {
+      const body = await readBody(req);
+      const parsed = JSON.parse(body || '{}');
+      const message = safeText(parsed.message, 'こんにちは');
+      const scene = sceneForCodexReply(message, scenes);
+      let subtitle = '';
+      let provider = 'codex-app-server';
+      try {
+        subtitle = await codexBridge.ask(message);
+      } catch (error) {
+        provider = 'scripted-fallback';
+      }
+      if (!subtitle) {
+        subtitle =
+          message.length > 0
+            ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
+            : scene.subtitle;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        provider,
+        sessionId: safeText(parsed.sessionId, `sess_${Date.now()}`),
+        reply: {
+          ...scene,
+          subtitle,
+        },
+      });
+    } catch (error) {
+      sendJson(res, 400, { ok: false, error: error.message || 'invalid request' });
+    }
+    return true;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/reaction') {
+    try {
+      const body = await readBody(req);
+      const parsed = JSON.parse(body || '{}');
+      const record = {
+        id: `rxn_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        type: safeText(parsed.type, 'unknown'),
+        value: safeText(parsed.value),
+      };
+      fs.mkdirSync(dataDir, { recursive: true });
+      fs.appendFileSync(reactionsFile, `${JSON.stringify(record)}\n`);
+      sendJson(res, 201, { ok: true, id: record.id, stored: true });
+    } catch (error) {
+      sendJson(res, 400, { ok: false, error: error.message || 'invalid request' });
+    }
+    return true;
+  }
+
+  return false;
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  if (url.pathname.startsWith('/api/')) {
+    const handled = await handleApi(req, res, url.pathname);
+    if (!handled) sendJson(res, 404, { ok: false, error: 'api route not found' });
+    return;
+  }
+  serveStatic(req, res, url.pathname);
+});
+
+server.listen(port, '127.0.0.1', () => {
+  console.log(`SakuraRin Light Avatar running at http://127.0.0.1:${port}`);
+});

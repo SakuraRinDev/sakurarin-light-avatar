@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>SakuraRin Light Avatar — Subtitle Prototype</title>
+    <meta name="description" content="光の塊AIアバターのドジかわいい字幕プロトタイプ。音声なし／字幕のみ。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Inter:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <div class="room" aria-hidden="true">
+      <div class="room__sky"></div>
+      <div class="room__floor"></div>
+      <div class="room__horizon"></div>
+      <span class="room__beam room__beam--a"></span>
+      <span class="room__beam room__beam--b"></span>
+      <span class="room__beam room__beam--c"></span>
+      <span class="room__dust room__dust--a"></span>
+      <span class="room__dust room__dust--b"></span>
+      <span class="room__dust room__dust--c"></span>
+      <span class="room__dust room__dust--d"></span>
+    </div>
+
+    <main class="stage" aria-label="光の塊AIアバターと字幕">
+      <header class="topbar">
+        <span class="topbar__chip">
+          <span class="topbar__dot" aria-hidden="true"></span>
+          <span class="topbar__name">light avatar</span>
+        </span>
+        <span class="topbar__sep" aria-hidden="true">／</span>
+        <span class="topbar__sub">SakuraRin mini theater</span>
+        <span class="topbar__status" aria-live="polite">
+          <span class="topbar__pulse" aria-hidden="true"></span>
+          <span id="status-label">ぼーっとしてる</span>
+        </span>
+      </header>
+
+      <section class="scene" aria-label="光の塊アバター">
+        <div class="wave wave--left" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="avatar" id="avatar">
+          <span class="avatar__orbit avatar__orbit--a" aria-hidden="true"></span>
+          <span class="avatar__orbit avatar__orbit--b" aria-hidden="true"></span>
+          <canvas
+            id="avatar-canvas"
+            class="avatar__canvas"
+            width="720"
+            height="720"
+            aria-hidden="true"
+          ></canvas>
+          <span class="avatar__drop avatar__drop--a" aria-hidden="true"></span>
+          <span class="avatar__drop avatar__drop--b" aria-hidden="true"></span>
+          <span class="avatar__drop avatar__drop--c" aria-hidden="true"></span>
+          <span class="avatar__ray avatar__ray--a" aria-hidden="true"></span>
+          <span class="avatar__ray avatar__ray--b" aria-hidden="true"></span>
+        </div>
+
+        <div class="wave wave--right" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </section>
+
+      <div class="dock">
+        <button
+          id="mic"
+          class="dock__mic"
+          type="button"
+          aria-label="マイク（準備中・音声は未接続）"
+          title="マイクは準備中（音声未接続）"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M12 14.5a3 3 0 0 0 3-3v-5a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5.5a6.5 6.5 0 0 0 5.75 6.45V21h1.5v-3.05A6.5 6.5 0 0 0 18.5 11.5H17Z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
+
+        <form id="compose" class="dock__bar" autocomplete="off">
+          <p
+            id="subtitle-text"
+            class="dock__subtitle"
+            aria-live="polite"
+          ></p>
+
+          <div class="dock__row">
+            <span class="dock__meta">
+              <span class="dock__meta-tag">字幕</span>
+              <span id="subtitle-source" class="dock__meta-src">idle</span>
+            </span>
+            <input
+              id="compose-input"
+              class="dock__input"
+              type="text"
+              name="message"
+              placeholder="ねえ、なにしてるの？"
+              maxlength="240"
+              required
+            />
+            <button
+              id="compose-send"
+              class="dock__send"
+              type="submit"
+              aria-label="送る"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 12l16-8-6 16-2-7-8-1Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <script src="assets/js/app.js" defer></script>
+  </body>
+</html>

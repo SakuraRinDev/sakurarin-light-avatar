@@ -1,0 +1,10 @@
+{
+  "name": "sakurarin-light-avatar",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node local-server.js",
+    "serve": "node local-server.js",
+    "check": "node -e \"fetch('http://127.0.0.1:5182/api/health').then(r=>r.json()).then(j=>{if(!j.ok)process.exit(1);console.log(JSON.stringify(j))})\""
+  }
+}
