@@ -99,7 +99,7 @@ async function handleApi(req, res, pathname) {
     sendJson(res, 200, {
       ok: true,
       service: 'sakurarin-light-avatar',
-      audio: false,
+      audio: experience.audio.enabled,
       subtitles: true,
       serverRole: experience.modelPlan.serverRole,
       dialogueProvider: 'codex-app-server',

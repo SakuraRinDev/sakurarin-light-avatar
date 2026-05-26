@@ -2,11 +2,12 @@
 
 Bright web prototype for a clumsy, cute, non-human light avatar.
 
-- Audio: disabled
+- Audio: Suno BGM with browser ON/OFF, plus WebAudio-generated SE
 - Subtitles: enabled
 - Browser model key: none
 - Server role: Codex APP server
 - Initial model plan: local Codex App Server responses from `/api/dialogue`, with scripted fallback
+- BGM asset: `assets/audio/suno-glass-archive.mp3`
 
 ## Run
 

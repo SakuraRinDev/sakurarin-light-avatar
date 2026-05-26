@@ -90,6 +90,13 @@
           </svg>
         </button>
 
+        <audio
+          id="bgm-audio"
+          src="assets/audio/suno-glass-archive.mp3"
+          preload="auto"
+          loop
+        ></audio>
+
         <form id="compose" class="dock__bar" autocomplete="off">
           <p
             id="subtitle-text"
@@ -123,6 +130,20 @@
             </button>
           </div>
         </form>
+
+        <button
+          id="sound-toggle"
+          class="dock__sound"
+          type="button"
+          aria-label="BGMをオンにする"
+          aria-pressed="false"
+          title="BGM"
+        >
+          <span class="dock__sound-icon" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="dock__sound-label">BGM</span>
+        </button>
       </div>
     </main>
 

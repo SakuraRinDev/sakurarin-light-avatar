@@ -2,7 +2,9 @@
   "id": "sakurarin-light-avatar",
   "title": "SakuraRin Light Avatar",
   "audio": {
-    "enabled": false
+    "enabled": true,
+    "bgm": "assets/audio/suno-glass-archive.mp3",
+    "se": "web-audio-generated"
   },
   "subtitles": {
     "enabled": true,
