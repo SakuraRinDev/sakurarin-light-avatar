@@ -25,6 +25,7 @@ Open `http://127.0.0.1:5182`.
 
 ```bash
 npm run check
+npm test
 curl http://127.0.0.1:5182/api/experience
 curl "http://127.0.0.1:5182/api/search?q=OpenAI"
 curl http://127.0.0.1:5182/api/contacts

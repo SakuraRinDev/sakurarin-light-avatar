@@ -42,8 +42,6 @@ function cleanSubtitle(text) {
 
 async function askOpenAI(message, options = {}) {
   loadLocalEnv(options.cwd);
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
   const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
   const searchQuery = searchDecision.needsSearch ? searchDecision.query : null;
@@ -68,6 +66,9 @@ async function askOpenAI(message, options = {}) {
       search: searchPayload,
     };
   }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
   if (/おすすめ|オススメ|何すれば|なにすれば/.test(message)) {
     return {
