@@ -9,6 +9,12 @@ const {
   persistConversationEvent,
   storageProvider,
 } = require('../conversation-store');
+const {
+  createFeedbackEvent,
+  listFeedbackEvents,
+  persistFeedbackEvent,
+  storageProvider: feedbackStorageProvider,
+} = require('../feedback-store');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -50,6 +56,7 @@ module.exports = async function handler(req, res) {
       searchRouter: 'ai-sdk-structured-output',
       phonebook: true,
       persistenceProvider: storageProvider(),
+      feedback: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return;
@@ -98,6 +105,41 @@ module.exports = async function handler(req, res) {
       res.status(200).json({ ok: true, provider: storageProvider(), count: events.length, events });
     } catch (error) {
       res.status(500).json({ ok: false, provider: storageProvider(), error: error.message || 'failed to read conversation log' });
+    }
+    return;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && route === '/feedback') {
+    if (req.method === 'POST') {
+      try {
+        const event = createFeedbackEvent({
+          sessionId: req.body?.sessionId,
+          category: req.body?.category,
+          message: req.body?.message,
+          page: req.body?.page,
+          userAgent: req.headers['user-agent'],
+        });
+        const persistence = await persistFeedbackEvent(event);
+        res.status(201).json({ ok: true, feedback: event, persistence });
+      } catch (error) {
+        res.status(400).json({
+          ok: false,
+          provider: feedbackStorageProvider(),
+          error: error.message || 'failed to store feedback',
+        });
+      }
+      return;
+    }
+
+    try {
+      const feedback = await listFeedbackEvents(req.query?.limit || 30);
+      res.status(200).json({ ok: true, provider: feedbackStorageProvider(), count: feedback.length, feedback });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        provider: feedbackStorageProvider(),
+        error: error.message || 'failed to read feedback',
+      });
     }
     return;
   }

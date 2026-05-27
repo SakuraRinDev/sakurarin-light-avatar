@@ -45,6 +45,23 @@ async function testApi() {
   assert.ok(conversations.count >= 1);
   assert.ok(conversations.events.some((event) => event.sessionId === sessionId));
 
+  const feedbackMessage = `改善要望テスト ${sessionId}`;
+  const feedbackPost = await json('/api/feedback', {
+    method: 'POST',
+    body: JSON.stringify({
+      sessionId,
+      category: 'request',
+      message: feedbackMessage,
+      page: `${BASE_URL}/`,
+    }),
+  });
+  assert.equal(feedbackPost.ok, true);
+  assert.equal(feedbackPost.persistence?.stored, true);
+
+  const feedbackList = await json('/api/feedback?limit=10');
+  assert.equal(feedbackList.ok, true);
+  assert.ok(feedbackList.feedback.some((item) => item.message === feedbackMessage));
+
   const searchDialogue = await json('/api/dialogue', {
     method: 'POST',
     body: JSON.stringify({ sessionId: `${sessionId}_search`, message: 'OpenAIって何が新しいの' }),
@@ -72,6 +89,15 @@ async function testBrowser() {
     page.on('pageerror', (error) => errors.push(error.message));
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
+    await page.click('#feedback-toggle');
+    await page.waitForSelector('.feedback-panel.is-open');
+    await page.selectOption('#feedback-category', 'idea');
+    await page.fill('#feedback-message', 'UIからの改善要望テスト');
+    await page.click('#feedback-submit');
+    await page.waitForFunction(() => document.querySelector('#feedback-status')?.textContent.includes('届いた'), null, {
+      timeout: 10000,
+    });
+
     await page.click('#phonebook-toggle');
     await page.waitForSelector('.contact-card');
     const phonebook = await page.evaluate(() => ({

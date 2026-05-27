@@ -16,6 +16,7 @@ module.exports = function handler(req, res) {
     searchRouter: 'ai-sdk-structured-output',
     phonebook: true,
     persistenceProvider: storageProvider(),
+    feedback: true,
     model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };

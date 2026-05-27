@@ -13,14 +13,14 @@
     return FALLBACK_LINES[seed % FALLBACK_LINES.length];
   }
 
-  async function ask(message) {
+  async function ask(message, sessionId = "") {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6000);
     try {
       const res = await fetch("/api/dialogue", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, sessionId }),
         signal: controller.signal,
       });
       clearTimeout(timeout);

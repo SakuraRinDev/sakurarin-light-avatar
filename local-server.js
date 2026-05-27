@@ -11,6 +11,12 @@ const {
   persistConversationEvent,
   storageProvider,
 } = require('./conversation-store');
+const {
+  createFeedbackEvent,
+  listFeedbackEvents,
+  persistFeedbackEvent,
+  storageProvider: feedbackStorageProvider,
+} = require('./feedback-store');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -117,6 +123,7 @@ async function handleApi(req, res, pathname) {
       searchRouter: 'ai-sdk-structured-output',
       phonebook: true,
       persistenceProvider: storageProvider(),
+      feedback: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
@@ -180,6 +187,44 @@ async function handleApi(req, res, pathname) {
       sendJson(res, 200, { ok: true, provider: storageProvider(), count: events.length, events });
     } catch (error) {
       sendJson(res, 500, { ok: false, provider: storageProvider(), error: error.message || 'failed to read conversation log' });
+    }
+    return true;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/feedback') {
+    if (req.method === 'POST') {
+      try {
+        const body = await readBody(req);
+        const parsed = JSON.parse(body || '{}');
+        const event = createFeedbackEvent({
+          sessionId: parsed.sessionId,
+          category: parsed.category,
+          message: parsed.message,
+          page: parsed.page,
+          userAgent: req.headers['user-agent'],
+        });
+        const persistence = await persistFeedbackEvent(event);
+        sendJson(res, 201, { ok: true, feedback: event, persistence });
+      } catch (error) {
+        sendJson(res, 400, {
+          ok: false,
+          provider: feedbackStorageProvider(),
+          error: error.message || 'failed to store feedback',
+        });
+      }
+      return true;
+    }
+
+    try {
+      const limit = new URL(req.url, `http://${req.headers.host}`).searchParams.get('limit') || 30;
+      const feedback = await listFeedbackEvents(limit);
+      sendJson(res, 200, { ok: true, provider: feedbackStorageProvider(), count: feedback.length, feedback });
+    } catch (error) {
+      sendJson(res, 500, {
+        ok: false,
+        provider: feedbackStorageProvider(),
+        error: error.message || 'failed to read feedback',
+      });
     }
     return true;
   }

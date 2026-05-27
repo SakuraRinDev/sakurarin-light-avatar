@@ -24,6 +24,7 @@
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
   const sfx = audio?.sfx || {};
+  window.PokaSessionId = window.PokaSessionId || `sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
   if (soundToggle) {
     audio?.init();
@@ -271,7 +272,7 @@
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
-    const { reply, source, status, motion } = await window.PokaDialogue.ask(message);
+    const { reply, source, status, motion } = await window.PokaDialogue.ask(message, window.PokaSessionId);
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();
     if (source === "api") sfx.sparkle?.();

@@ -9,6 +9,12 @@ const {
   persistConversationEvent,
   storageProvider,
 } = require('../conversation-store');
+const {
+  createFeedbackEvent,
+  listFeedbackEvents,
+  persistFeedbackEvent,
+  storageProvider: feedbackStorageProvider,
+} = require('../feedback-store');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -138,6 +144,46 @@ async function sendConversationLog(req, res) {
   }
 }
 
+async function sendFeedback(req, res) {
+  if (req.method === 'POST') {
+    try {
+      const event = createFeedbackEvent({
+        sessionId: req.body?.sessionId,
+        category: req.body?.category,
+        message: req.body?.message,
+        page: req.body?.page,
+        userAgent: req.headers['user-agent'],
+      });
+      const persistence = await persistFeedbackEvent(event);
+      res.status(201).json({ ok: true, feedback: event, persistence });
+    } catch (error) {
+      res.status(400).json({
+        ok: false,
+        provider: feedbackStorageProvider(),
+        error: error.message || 'failed to store feedback',
+      });
+    }
+    return;
+  }
+
+  try {
+    const limit = req.query?.limit;
+    const feedback = await listFeedbackEvents(limit || 30);
+    res.status(200).json({
+      ok: true,
+      provider: feedbackStorageProvider(),
+      count: feedback.length,
+      feedback,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: feedbackStorageProvider(),
+      error: error.message || 'failed to read feedback',
+    });
+  }
+}
+
 module.exports = {
   pickReply,
   readJson,
@@ -145,5 +191,6 @@ module.exports = {
   sendContacts,
   sendConversationLog,
   sendDialogue,
+  sendFeedback,
   sendSearch,
 };

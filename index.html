@@ -39,6 +39,16 @@
           <span class="topbar__pulse" aria-hidden="true"></span>
           <span id="status-label">出番待ち</span>
         </span>
+        <button
+          id="feedback-toggle"
+          class="topbar__feedback"
+          type="button"
+          aria-label="改善要望を送る"
+          aria-expanded="false"
+          aria-controls="feedback-panel"
+        >
+          要望
+        </button>
       </header>
 
       <section class="scene" aria-label="光の塊アバター">
@@ -168,9 +178,52 @@
       </div>
     </aside>
 
+    <aside
+      id="feedback-panel"
+      class="feedback-panel"
+      aria-label="改善要望"
+      aria-hidden="true"
+    >
+      <form class="feedback-panel__card" id="feedback-form" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+        <header class="feedback-panel__head">
+          <div>
+            <p class="feedback-panel__eyebrow">FEEDBACK</p>
+            <h2 id="feedback-title">改善要望</h2>
+          </div>
+          <button id="feedback-close" class="feedback-panel__close" type="button" aria-label="改善要望を閉じる">×</button>
+        </header>
+        <label class="feedback-panel__field">
+          <span>種類</span>
+          <select id="feedback-category" name="category">
+            <option value="idea">アイデア</option>
+            <option value="bug">不具合</option>
+            <option value="request">追加してほしい</option>
+            <option value="call">電話まわり</option>
+            <option value="other">その他</option>
+          </select>
+        </label>
+        <label class="feedback-panel__field">
+          <span>内容</span>
+          <textarea
+            id="feedback-message"
+            name="message"
+            maxlength="600"
+            rows="5"
+            placeholder="ここが分かりにくい、こうしてほしい、など"
+            required
+          ></textarea>
+        </label>
+        <div class="feedback-panel__actions">
+          <p id="feedback-status" class="feedback-panel__status" aria-live="polite"></p>
+          <button id="feedback-submit" class="feedback-panel__submit" type="submit">送る</button>
+        </div>
+      </form>
+    </aside>
+
     <script src="assets/js/audio.js" defer></script>
     <script src="assets/js/dialogue.js" defer></script>
     <script src="assets/js/phonebook.js" defer></script>
+    <script src="assets/js/feedback.js" defer></script>
     <script src="assets/js/app.js" defer></script>
   </body>
 </html>
