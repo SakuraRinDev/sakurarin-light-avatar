@@ -399,13 +399,14 @@ input {
 .dock {
   align-self: end;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 106px;
-  gap: 26px;
+  grid-template-columns: minmax(0, 1fr) 96px 96px;
+  gap: 18px;
   align-items: end;
   padding-inline: clamp(0px, 10vw, 320px);
 }
 
-.dock__sound {
+.dock__sound,
+.dock__call {
   width: 96px;
   height: 96px;
   display: grid;
@@ -414,21 +415,34 @@ input {
   gap: 7px;
   border: 1px solid rgba(255,255,255,0.82);
   border-radius: 50%;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), 0 18px 48px rgba(140, 196, 222, 0.22);
+  backdrop-filter: blur(18px);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.dock__sound {
   color: rgba(47, 40, 72, 0.58);
   background:
     radial-gradient(circle at 36% 30%, rgba(255,255,255,0.96), rgba(255,255,255,0.36) 58%, rgba(169, 236, 255, 0.28)),
     linear-gradient(135deg, rgba(255,255,255,0.46), rgba(255, 217, 151, 0.24));
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), 0 18px 48px rgba(140, 196, 222, 0.22);
-  backdrop-filter: blur(18px);
   cursor: pointer;
-  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), color 0.18s var(--ease);
 }
 
-.dock__sound:hover {
+.dock__call {
+  color: #c98932;
+  text-decoration: none;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.98), rgba(255,255,255,0.4) 58%, rgba(255, 214, 151, 0.32)),
+    linear-gradient(135deg, rgba(255,255,255,0.48), rgba(255, 179, 216, 0.22));
+}
+
+.dock__sound:hover,
+.dock__call:hover {
   transform: translateY(-1px) scale(1.02);
 }
 
-.dock__sound:active {
+.dock__sound:active,
+.dock__call:active {
   transform: translateY(1px) scale(0.98);
 }
 
@@ -467,7 +481,13 @@ input {
 .dock__sound.is-on .dock__sound-icon span:nth-child(2) { animation-delay: -0.23s; }
 .dock__sound.is-on .dock__sound-icon span:nth-child(3) { animation-delay: -0.46s; }
 
-.dock__sound-label {
+.dock__call svg {
+  width: 26px;
+  height: 26px;
+}
+
+.dock__sound-label,
+.dock__call span {
   font-family: var(--font-en);
   font-size: 11px;
   font-weight: 800;
@@ -653,13 +673,13 @@ input {
   }
 
   .dock {
-    grid-template-columns: minmax(0, 1fr) 60px;
+    grid-template-columns: minmax(0, 1fr) 60px 60px;
     gap: 12px;
     padding: 0;
   }
 
-  .dock__sound {
-    grid-column: 2;
+  .dock__sound,
+  .dock__call {
     grid-row: 1;
     width: 60px;
     height: 60px;
@@ -679,6 +699,15 @@ input {
   .dock__sound-icon span:nth-child(3) { height: 13px; }
 
   .dock__sound-label {
+    font-size: 9px;
+  }
+
+  .dock__call svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .dock__call span {
     font-size: 9px;
   }
 
@@ -735,13 +764,14 @@ input {
   }
 
   .dock {
-    grid-template-columns: minmax(0, 1fr) 54px;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 52px 52px;
+    gap: 8px;
   }
 
-  .dock__sound {
-    width: 54px;
-    height: 54px;
+  .dock__sound,
+  .dock__call {
+    width: 52px;
+    height: 52px;
   }
 
   .dock__subtitle {
