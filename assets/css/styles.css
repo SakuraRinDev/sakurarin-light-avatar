@@ -950,6 +950,13 @@ input {
 .dock__meta-src[data-state="fallback"] { color: #c98924; }
 .dock__meta-src[data-state="error"] { color: #c96166; }
 
+.dock__skill {
+  max-width: 132px;
+  overflow: hidden;
+  color: #8d73b6;
+  text-overflow: ellipsis;
+}
+
 .dock__input {
   min-width: 0;
   width: 100%;

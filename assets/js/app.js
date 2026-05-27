@@ -14,6 +14,7 @@
   const ctx = canvas.getContext("2d");
   const subtitleEl = document.getElementById("subtitle-text");
   const sourceEl = document.getElementById("subtitle-source");
+  const skillEl = document.getElementById("skill-label");
   const statusEl = document.getElementById("status-label");
   const avatarBox = document.getElementById("avatar");
   const sceneEl = document.querySelector(".scene");
@@ -259,6 +260,11 @@
     setSpeaking(approxMs);
   }
 
+  function setSkill(skill) {
+    if (!skillEl) return;
+    skillEl.textContent = skill?.id ? `skill:${skill.id}` : "";
+  }
+
   /* ----------------------- form ----------------------- */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -272,11 +278,12 @@
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
-    const { reply, source, status, motion } = await window.PokaDialogue.ask(message, window.PokaSessionId);
+    const { reply, source, status, motion, skill } = await window.PokaDialogue.ask(message, window.PokaSessionId);
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();
     if (source === "api") sfx.sparkle?.();
     else sfx.error?.();
+    setSkill(skill);
     setSubtitle(reply, source);
     input.value = "";
     sendBtn.disabled = false;

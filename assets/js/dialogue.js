@@ -37,6 +37,7 @@
         source: data?.search ? "search" : "api",
         status: data?.reply?.status,
         motion: data?.reply?.motion,
+        skill: data?.skill || null,
       };
     } catch {
       clearTimeout(timeout);

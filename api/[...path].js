@@ -15,6 +15,7 @@ const {
   persistFeedbackEvent,
   storageProvider: feedbackStorageProvider,
 } = require('../feedback-store');
+const { routeSkill } = require('../skill-router');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -156,12 +157,14 @@ module.exports = async function handler(req, res) {
     let provider = 'openai-api';
     let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
     let search = null;
+    let skill = routeSkill(message);
     try {
       const reply = await askOpenAI(message, { cwd: rootDir });
       subtitle = reply.subtitle;
       provider = reply.provider || provider;
       model = reply.model;
       search = reply.search || null;
+      skill = reply.skill || skill;
     } catch (error) {
       provider = 'scripted-fallback';
     }
@@ -187,6 +190,7 @@ module.exports = async function handler(req, res) {
         subtitle,
       },
       search,
+      skill,
     };
     const event = createConversationEvent({
       sessionId: responsePayload.sessionId,
@@ -196,6 +200,7 @@ module.exports = async function handler(req, res) {
       model: responsePayload.model,
       status: responsePayload.reply.status,
       search,
+      skill,
     });
     try {
       responsePayload.persistence = await persistConversationEvent(event);

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createSearchSubtitle, formatSearchContext, searchGoogle } = require('./google-search');
 const { decideSearch } = require('./search-router');
+const { formatSkillContext, routeSkill } = require('./skill-router');
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
 
@@ -42,6 +43,7 @@ function cleanSubtitle(text) {
 
 async function askOpenAI(message, options = {}) {
   loadLocalEnv(options.cwd);
+  const skill = routeSkill(message);
 
   const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
   const searchQuery = searchDecision.needsSearch ? searchDecision.query : null;
@@ -64,6 +66,7 @@ async function askOpenAI(message, options = {}) {
       model: options.model || DEFAULT_MODEL,
       subtitle: createSearchSubtitle(searchPayload),
       search: searchPayload,
+      skill,
     };
   }
 
@@ -75,6 +78,7 @@ async function askOpenAI(message, options = {}) {
       model: options.model || DEFAULT_MODEL,
       subtitle: 'BGMをオンにして、今日の気分をポカに聞いてみて。あ、光りすぎた。',
       search: searchPayload,
+      skill,
     };
   }
 
@@ -90,6 +94,7 @@ async function askOpenAI(message, options = {}) {
       'おすすめを聞かれたら、必ず「BGMをオンにして、今日の気分を聞いてみて」と案内します。',
       '映画、食べ物、グッズ、チケット、キャンペーンなど、この画面にないものは絶対におすすめしません。',
       '固有名詞は架空設定として扱い、実在IPや他社キャラクター名は出しません。',
+      '参照スキルが入力に含まれる場合は、その指針を優先して、相談に対する具体的な次の一手を短く返してください。',
       '返答はWeb字幕としてそのまま表示できる短い日本語だけ。説明、引用符、箇条書き、前置きは禁止。最大60文字。',
       '口調は公式キャラらしく、明るく、少しドジで、親しみやすい。語尾は幼すぎない。',
     ];
@@ -110,9 +115,11 @@ async function askOpenAI(message, options = {}) {
       body: JSON.stringify({
         model: options.model || DEFAULT_MODEL,
         instructions: baseInstructions.join('\n'),
-        input: searchPayload
-          ? `ユーザー入力: ${message}\n\n${formatSearchContext(searchPayload)}`
-          : `ユーザー入力: ${message}`,
+        input: [
+          `ユーザー入力: ${message}`,
+          skill ? formatSkillContext(skill) : '',
+          searchPayload ? formatSearchContext(searchPayload) : '',
+        ].filter(Boolean).join('\n\n'),
         max_output_tokens: 200,
         reasoning: { effort: 'minimal' },
         text: { verbosity: 'low' },
@@ -129,6 +136,7 @@ async function askOpenAI(message, options = {}) {
       model: data.model || options.model || DEFAULT_MODEL,
       subtitle,
       search: searchPayload,
+      skill,
     };
   } finally {
     clearTimeout(timeout);

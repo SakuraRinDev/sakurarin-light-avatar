@@ -76,6 +76,13 @@ async function testApi() {
   });
   assert.equal(localDialogue.ok, true);
   assert.equal(Boolean(localDialogue.search), false);
+
+  const skillDialogue = await json('/api/dialogue', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId: `${sessionId}_skill`, message: 'このUIの改善を相談したい' }),
+  });
+  assert.equal(skillDialogue.ok, true);
+  assert.equal(skillDialogue.skill?.id, 'frontend-design');
 }
 
 async function testBrowser() {
@@ -114,18 +121,23 @@ async function testBrowser() {
     assert.equal(phonebook.noHorizontalScroll, true);
 
     await page.click('#phonebook-close');
-    await page.fill('#compose-input', 'SakuraRinとは？');
+    await page.fill('#compose-input', 'このUIの改善を相談したい');
     await page.click('#compose-send');
     await page.waitForFunction(() => document.querySelector('#subtitle-source')?.textContent === 'api', null, {
+      timeout: 12000,
+    });
+    await page.waitForFunction(() => document.querySelector('#skill-label')?.textContent.includes('frontend-design'), null, {
       timeout: 12000,
     });
     const chat = await page.evaluate(() => ({
       source: document.querySelector('#subtitle-source')?.textContent,
       subtitle: document.querySelector('#subtitle-text')?.textContent,
+      skill: document.querySelector('#skill-label')?.textContent,
       noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
     }));
     assert.equal(chat.source, 'api');
     assert.ok(chat.subtitle);
+    assert.match(chat.skill, /frontend-design/);
     assert.equal(chat.noHorizontalScroll, true);
     assert.deepEqual(errors, []);
   } finally {

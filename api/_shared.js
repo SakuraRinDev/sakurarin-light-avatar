@@ -15,6 +15,7 @@ const {
   persistFeedbackEvent,
   storageProvider: feedbackStorageProvider,
 } = require('../feedback-store');
+const { routeSkill } = require('../skill-router');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -45,12 +46,14 @@ async function sendDialogue(req, res) {
   let provider = 'openai-api';
   let model = DEFAULT_MODEL;
   let search = null;
+  let skill = routeSkill(message);
   try {
     const reply = await askOpenAI(message, { cwd: rootDir });
     subtitle = reply.subtitle;
     provider = reply.provider || provider;
     model = reply.model;
     search = reply.search || null;
+    skill = reply.skill || skill;
   } catch (error) {
     provider = 'scripted-fallback';
   }
@@ -76,6 +79,7 @@ async function sendDialogue(req, res) {
       subtitle,
     },
     search,
+    skill,
   };
 
   const event = createConversationEvent({
@@ -86,6 +90,7 @@ async function sendDialogue(req, res) {
     model: responsePayload.model,
     status: responsePayload.reply.status,
     search,
+    skill,
   });
   try {
     responsePayload.persistence = await persistConversationEvent(event);

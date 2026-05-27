@@ -33,6 +33,13 @@ function createConversationEvent(input) {
           decision: input.search.decision || null,
         }
       : null,
+    skill: input.skill
+      ? {
+          id: safeText(input.skill.id, '', 80),
+          title: safeText(input.skill.title, '', 120),
+          score: Number(input.skill.score || 0),
+        }
+      : null,
   };
 }
 
