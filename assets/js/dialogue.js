@@ -34,7 +34,7 @@
       if (!reply) throw new Error("no subtitle field");
       return {
         reply,
-        source: "api",
+        source: data?.search ? "search" : "api",
         status: data?.reply?.status,
         motion: data?.reply?.motion,
       };

@@ -166,6 +166,7 @@ async function handleApi(req, res, pathname) {
       try {
         const reply = await askOpenAI(message, { cwd: rootDir });
         subtitle = reply.subtitle;
+        provider = reply.provider || provider;
         model = reply.model;
         search = reply.search || null;
       } catch (error) {
@@ -189,7 +190,12 @@ async function handleApi(req, res, pathname) {
         sessionId: safeText(parsed.sessionId, `sess_${Date.now()}`),
         reply: {
           ...scene,
-          status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
+          status:
+            provider === 'google-search'
+              ? 'Google検索から返事中'
+              : provider === 'openai-api'
+              ? 'OpenAIから返事中'
+              : scene.status,
           subtitle,
         },
         search,

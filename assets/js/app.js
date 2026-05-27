@@ -247,6 +247,8 @@
     sourceEl.dataset.state =
       source === "api"
         ? "ok"
+        : source === "search"
+        ? "search"
         : source === "fallback"
         ? "fallback"
         : source === "error"

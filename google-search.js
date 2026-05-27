@@ -8,7 +8,6 @@ const cheerio = require('cheerio');
 
 const SEARCH_PATTERNS = [
   /(?:google|Google|グーグル|ぐぐ|ググ|検索|調べて|しらべて|最新|ニュース)/,
-  /(?:とは|って何|ってなに|教えて|おしえて)/,
 ];
 
 function cleanQueryPart(text) {
@@ -37,10 +36,20 @@ function extractSearchQuery(message) {
 
 function normalizeSearchResult(result) {
   const url = String(result && (result.url || result.link) || '').trim();
-  const title = String(result && result.title || '').replace(/\s+/g, ' ').trim();
-  const snippet = String(result && (result.description || result.snippet) || '').replace(/\s+/g, ' ').trim();
+  const title = decodeHtml(String(result && result.title || '')).replace(/\s+/g, ' ').trim();
+  const snippet = decodeHtml(String(result && (result.description || result.snippet) || '')).replace(/\s+/g, ' ').trim();
   if (!url.startsWith('http') || !title) return null;
   return { title, url, snippet };
+}
+
+function decodeHtml(text) {
+  return String(text || '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }
 
 async function searchGoogle(query, options = {}) {
@@ -141,15 +150,18 @@ function createSearchSubtitle(searchPayload) {
     return 'Google検索、ちょっと転んじゃった。もう一回だけ試してみて。';
   }
   const first = searchPayload.results[0];
-  const source = first.title.split(' - ').pop().replace(/\|.+$/, '').trim();
-  const headline = first.title.replace(/\s+-\s+[^-]+$/, '').replace(/\s*\|.+$/, '').trim();
+  const sourceParts = first.title.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean);
+  const source = sourceParts.length > 1 ? sourceParts[sourceParts.length - 1] : '';
+  const headline = (sourceParts[0] || first.title).split(/｜|\|/)[0].trim();
+  const shortHeadline = headline.length > 34 ? `${headline.slice(0, 33)}...` : headline;
   const suffix = source && source !== headline ? `（${source}）` : '';
-  return `見つけたよ。${headline}${suffix}`.slice(0, 72);
+  return `検索したよ。${shortHeadline}${suffix}`.slice(0, 60);
 }
 
 module.exports = {
   cleanQueryPart,
   createSearchSubtitle,
+  decodeHtml,
   extractSearchQuery,
   formatSearchContext,
   parseGoogleHtml,

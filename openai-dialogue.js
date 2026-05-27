@@ -59,6 +59,7 @@ async function askOpenAI(message, options = {}) {
       };
     }
     return {
+      provider: 'google-search',
       model: options.model || DEFAULT_MODEL,
       subtitle: createSearchSubtitle(searchPayload),
       search: searchPayload,

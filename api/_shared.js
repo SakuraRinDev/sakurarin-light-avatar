@@ -35,6 +35,7 @@ async function sendDialogue(req, res) {
   try {
     const reply = await askOpenAI(message, { cwd: rootDir });
     subtitle = reply.subtitle;
+    provider = reply.provider || provider;
     model = reply.model;
     search = reply.search || null;
   } catch (error) {
@@ -49,11 +50,16 @@ async function sendDialogue(req, res) {
   res.status(200).json({
     ok: true,
     provider,
-    model,
+    model: provider === 'openai-api' ? model : null,
     sessionId: safeText(req.body && req.body.sessionId, `sess_${Date.now()}`),
     reply: {
       ...scene,
-      status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
+      status:
+        provider === 'google-search'
+          ? 'Google検索から返事中'
+          : provider === 'openai-api'
+          ? 'OpenAIから返事中'
+          : scene.status,
       subtitle,
     },
     search,
