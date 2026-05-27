@@ -23,161 +23,21 @@
   const micBtn = document.getElementById("mic");
   const soundToggle = document.getElementById("sound-toggle");
   const bgmAudio = document.getElementById("bgm-audio");
-
-  /* ----------------------- sound design ----------------------- */
-  const sound = {
-    ctx: null,
-    master: null,
-    bgmOn: false,
-  };
-
-  function ensureAudio() {
-    if (!sound.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return null;
-      sound.ctx = new AudioContext();
-      sound.master = sound.ctx.createGain();
-      sound.master.gain.value = 0.26;
-      sound.master.connect(sound.ctx.destination);
-    }
-    if (sound.ctx.state === "suspended") {
-      sound.ctx.resume();
-    }
-    return sound.ctx;
-  }
-
-  function tone(freq, start, duration, options = {}) {
-    const ctx = ensureAudio();
-    if (!ctx || !sound.master) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const type = options.type || "sine";
-    const volume = options.volume ?? 0.12;
-    const attack = options.attack ?? 0.012;
-    const release = options.release ?? 0.12;
-    const t0 = ctx.currentTime + start;
-    const t1 = t0 + duration;
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (options.to) osc.frequency.exponentialRampToValueAtTime(options.to, t1);
-
-    filter.type = options.filterType || "lowpass";
-    filter.frequency.setValueAtTime(options.filter ?? 4200, t0);
-    filter.Q.value = options.q ?? 0.8;
-
-    gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(volume, t0 + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t1 + release);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(sound.master);
-    osc.start(t0);
-    osc.stop(t1 + release + 0.04);
-  }
-
-  function noise(start, duration, options = {}) {
-    const ctx = ensureAudio();
-    if (!ctx || !sound.master) return;
-    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / length);
-    }
-    const src = ctx.createBufferSource();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const t0 = ctx.currentTime + start;
-    src.buffer = buffer;
-    filter.type = options.filterType || "bandpass";
-    filter.frequency.value = options.filter ?? 5200;
-    filter.Q.value = options.q ?? 2.4;
-    gain.gain.setValueAtTime(options.volume ?? 0.055, t0);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(sound.master);
-    src.start(t0);
-    src.stop(t0 + duration + 0.02);
-  }
-
-  const sfx = {
-    toggleOn() {
-      tone(523.25, 0, 0.14, { volume: 0.08, filter: 5000 });
-      tone(783.99, 0.08, 0.16, { volume: 0.07, filter: 5600 });
-      noise(0.02, 0.16, { volume: 0.025, filter: 6400 });
-    },
-    toggleOff() {
-      tone(493.88, 0, 0.12, { to: 329.63, volume: 0.07, filter: 3200 });
-    },
-    tap() {
-      tone(880, 0, 0.08, { volume: 0.055, filter: 5600 });
-      noise(0, 0.08, { volume: 0.018, filter: 7200 });
-    },
-    listen() {
-      tone(392, 0, 0.16, { to: 523.25, volume: 0.045, type: "triangle", filter: 3800 });
-      noise(0.03, 0.18, { volume: 0.022, filter: 3600 });
-    },
-    sparkle() {
-      [659.25, 783.99, 987.77, 1318.51].forEach((freq, i) => {
-        tone(freq, i * 0.055, 0.13, { volume: 0.047, filter: 7200 });
-      });
-      noise(0.08, 0.2, { volume: 0.025, filter: 8400, q: 3.2 });
-    },
-    wobble() {
-      tone(330, 0, 0.18, { to: 220, volume: 0.075, type: "triangle", filter: 2200 });
-      tone(587.33, 0.1, 0.12, { to: 493.88, volume: 0.04, type: "sine", filter: 3800 });
-    },
-    error() {
-      tone(277.18, 0, 0.14, { to: 246.94, volume: 0.06, type: "triangle", filter: 1800 });
-      tone(369.99, 0.11, 0.12, { to: 329.63, volume: 0.045, type: "triangle", filter: 1800 });
-    },
-  };
-
-  function updateSoundButton() {
-    if (!soundToggle) return;
-    soundToggle.classList.toggle("is-on", sound.bgmOn);
-    soundToggle.setAttribute("aria-pressed", String(sound.bgmOn));
-    soundToggle.setAttribute("aria-label", sound.bgmOn ? "BGMをオフにする" : "BGMをオンにする");
-  }
-
-  async function toggleBgm() {
-    ensureAudio();
-    sound.bgmOn = !sound.bgmOn;
-    updateSoundButton();
-    if (!bgmAudio) return;
-    bgmAudio.volume = 0.32;
-    if (sound.bgmOn) {
-      try {
-        await bgmAudio.play();
-        sfx.toggleOn();
-      } catch (err) {
-        sound.bgmOn = false;
-        updateSoundButton();
-        sfx.error();
-      }
-    } else {
-      bgmAudio.pause();
-      sfx.toggleOff();
-    }
-  }
+  const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
+  const sfx = audio?.sfx || {};
 
   /* mic is decorative for now — show a friendly hint, no audio capture */
   if (micBtn) {
     micBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      sfx.tap();
+      sfx.tap?.();
       setStatus("マイクはまだ準備中…");
       setTimeout(setIdle, 1400);
     });
   }
 
   if (soundToggle) {
-    soundToggle.addEventListener("click", toggleBgm);
-    updateSoundButton();
+    audio?.init();
   }
 
   /* ----------------------- canvas sizing ----------------------- */
@@ -219,7 +79,7 @@
   function triggerClumsy() {
     drive.clumsyUntil = performance.now() + 600;
     avatarBox.classList.add("is-clumsy");
-    sfx.wobble();
+    sfx.wobble?.();
     setTimeout(() => avatarBox.classList.remove("is-clumsy"), 620);
   }
 
@@ -388,20 +248,6 @@
   requestAnimationFrame(tick);
 
   /* ----------------------- subtitle plumbing ----------------------- */
-  const FALLBACK_LINES = [
-    "あっ、ごめんね。バックエンドさんが、いま、お昼寝中みたい。",
-    "うーん、上手く繋がらなかった…でも、わたしはここにいるよ。",
-    "ふわ〜、電波ちょっと弱いかも。代わりにわたしが喋っちゃうね。",
-    "そのお話、もうちょっと聞かせてほしいな。…って繋がってないのに偉そう、ごめん。",
-    "（こてっ）あれ？通信、こけちゃった。だいじょうぶ、立て直すね。",
-    "光ってるだけで賢く見られがちなんだけど、実はけっこうドジなの。",
-  ];
-
-  function pickFallback(message) {
-    const seed = (message || "").length + Date.now();
-    return FALLBACK_LINES[seed % FALLBACK_LINES.length];
-  }
-
   function setSubtitle(text, source) {
     subtitleEl.classList.add("is-swapping");
     setTimeout(() => {
@@ -421,55 +267,24 @@
     setSpeaking(approxMs);
   }
 
-  async function askDialogue(message) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-    try {
-      const res = await fetch("/api/dialogue", {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ message }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const data = await res.json();
-      const reply =
-        (typeof data?.reply?.subtitle === "string" && data.reply.subtitle) ||
-        (typeof data?.subtitle === "string" && data.subtitle) ||
-        (typeof data?.reply === "string" && data.reply) ||
-        (typeof data?.text === "string" && data.text);
-      if (!reply) throw new Error("no subtitle field");
-      return {
-        reply,
-        source: "api",
-        status: data?.reply?.status,
-        motion: data?.reply?.motion,
-      };
-    } catch (err) {
-      clearTimeout(timeout);
-      return { reply: pickFallback(message), source: "fallback", motion: "bounce-slip" };
-    }
-  }
-
   /* ----------------------- form ----------------------- */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const message = input.value.trim();
     if (!message) return;
     sendBtn.disabled = true;
-    sfx.tap();
-    sfx.listen();
+    sfx.tap?.();
+    sfx.listen?.();
     setStatus("聞いてる…");
     drive.target = 0.34;
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
-    const { reply, source, status, motion } = await askDialogue(message);
+    const { reply, source, status, motion } = await window.PokaDialogue.ask(message);
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();
-    if (source === "api") sfx.sparkle();
-    else sfx.error();
+    if (source === "api") sfx.sparkle?.();
+    else sfx.error?.();
     setSubtitle(reply, source);
     input.value = "";
     sendBtn.disabled = false;
