@@ -10,6 +10,7 @@ Bright web prototype for a clumsy, cute, non-human light avatar.
 - Search router: chat replies use the OSS Vercel AI SDK structured-output router to decide whether live search is needed, with a heuristic fallback.
 - Google search: `/api/search` and search-needed chat replies use the OSS `google-search-ts` package. If Google web HTML is blocked, the server falls back to Google News RSS results.
 - Phonebook: `/api/contacts` returns demo contacts shaped around vCard/schema.org-style fields and normalized with OSS `libphonenumber-js`. The browser opens device calling via per-contact `tel:` links; no real phone numbers are bundled.
+- Conversation persistence: `/api/dialogue` stores user/assistant turns. On Vercel it uses KV/Upstash REST when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are configured; otherwise local development falls back to `data/conversation-events.jsonl`. Read the latest turns from `/api/conversations`.
 - BGM asset: `assets/audio/suno-glass-archive.mp3`
 
 ## Run
@@ -27,6 +28,7 @@ npm run check
 curl http://127.0.0.1:5182/api/experience
 curl "http://127.0.0.1:5182/api/search?q=OpenAI"
 curl http://127.0.0.1:5182/api/contacts
+curl http://127.0.0.1:5182/api/conversations
 ```
 
 ## Codex App Server

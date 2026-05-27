@@ -3,6 +3,12 @@ const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
 const { normalizeContacts } = require('../phonebook');
+const {
+  createConversationEvent,
+  listConversationEvents,
+  persistConversationEvent,
+  storageProvider,
+} = require('../conversation-store');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -48,7 +54,7 @@ async function sendDialogue(req, res) {
         ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
         : scene.subtitle;
   }
-  res.status(200).json({
+  const responsePayload = {
     ok: true,
     provider,
     model: provider === 'openai-api' ? model : null,
@@ -64,7 +70,28 @@ async function sendDialogue(req, res) {
       subtitle,
     },
     search,
+  };
+
+  const event = createConversationEvent({
+    sessionId: responsePayload.sessionId,
+    userMessage: message,
+    assistantMessage: subtitle,
+    provider,
+    model: responsePayload.model,
+    status: responsePayload.reply.status,
+    search,
   });
+  try {
+    responsePayload.persistence = await persistConversationEvent(event);
+  } catch (error) {
+    responsePayload.persistence = {
+      stored: false,
+      provider: storageProvider(),
+      error: error.message || 'conversation persistence failed',
+    };
+  }
+
+  res.status(200).json(responsePayload);
 }
 
 async function sendSearch(req, res) {
@@ -92,11 +119,31 @@ function sendContacts(req, res) {
   });
 }
 
+async function sendConversationLog(req, res) {
+  try {
+    const limit = req.method === 'GET' ? req.query?.limit : req.body?.limit;
+    const events = await listConversationEvents(limit || 30);
+    res.status(200).json({
+      ok: true,
+      provider: storageProvider(),
+      count: events.length,
+      events,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: storageProvider(),
+      error: error.message || 'failed to read conversation log',
+    });
+  }
+}
+
 module.exports = {
   pickReply,
   readJson,
   safeText,
   sendContacts,
+  sendConversationLog,
   sendDialogue,
   sendSearch,
 };

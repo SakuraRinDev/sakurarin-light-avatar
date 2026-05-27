@@ -3,6 +3,12 @@ const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
 const { normalizeContacts } = require('../phonebook');
+const {
+  createConversationEvent,
+  listConversationEvents,
+  persistConversationEvent,
+  storageProvider,
+} = require('../conversation-store');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -43,6 +49,7 @@ module.exports = async function handler(req, res) {
       searchProvider: 'google-search-ts',
       searchRouter: 'ai-sdk-structured-output',
       phonebook: true,
+      persistenceProvider: storageProvider(),
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return;
@@ -84,6 +91,17 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if ((req.method === 'GET' || req.method === 'POST') && route === '/conversations') {
+    try {
+      const limit = req.method === 'GET' ? req.query?.limit : req.body?.limit;
+      const events = await listConversationEvents(limit || 30);
+      res.status(200).json({ ok: true, provider: storageProvider(), count: events.length, events });
+    } catch (error) {
+      res.status(500).json({ ok: false, provider: storageProvider(), error: error.message || 'failed to read conversation log' });
+    }
+    return;
+  }
+
   if (req.method === 'POST' && route === '/session') {
     res.status(201).json({ ok: true, sessionId: `sess_${Date.now()}`, scene: scenes[0] });
     return;
@@ -111,7 +129,7 @@ module.exports = async function handler(req, res) {
           ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
           : scene.subtitle;
     }
-    res.status(200).json({
+    const responsePayload = {
       ok: true,
       provider,
       model: provider === 'openai-api' ? model : null,
@@ -127,7 +145,26 @@ module.exports = async function handler(req, res) {
         subtitle,
       },
       search,
+    };
+    const event = createConversationEvent({
+      sessionId: responsePayload.sessionId,
+      userMessage: message,
+      assistantMessage: subtitle,
+      provider,
+      model: responsePayload.model,
+      status: responsePayload.reply.status,
+      search,
     });
+    try {
+      responsePayload.persistence = await persistConversationEvent(event);
+    } catch (persistError) {
+      responsePayload.persistence = {
+        stored: false,
+        provider: storageProvider(),
+        error: persistError.message || 'conversation persistence failed',
+      };
+    }
+    res.status(200).json(responsePayload);
     return;
   }
 

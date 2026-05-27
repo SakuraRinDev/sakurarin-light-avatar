@@ -5,6 +5,12 @@ const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('./google-search');
 const { normalizeContacts } = require('./phonebook');
+const {
+  createConversationEvent,
+  listConversationEvents,
+  persistConversationEvent,
+  storageProvider,
+} = require('./conversation-store');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -110,6 +116,7 @@ async function handleApi(req, res, pathname) {
       searchProvider: 'google-search-ts',
       searchRouter: 'ai-sdk-structured-output',
       phonebook: true,
+      persistenceProvider: storageProvider(),
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
@@ -159,6 +166,24 @@ async function handleApi(req, res, pathname) {
     return true;
   }
 
+  if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/conversations') {
+    try {
+      let limit = 30;
+      if (req.method === 'GET') {
+        limit = new URL(req.url, `http://${req.headers.host}`).searchParams.get('limit') || 30;
+      } else {
+        const body = await readBody(req);
+        const parsed = JSON.parse(body || '{}');
+        limit = parsed.limit || 30;
+      }
+      const events = await listConversationEvents(limit);
+      sendJson(res, 200, { ok: true, provider: storageProvider(), count: events.length, events });
+    } catch (error) {
+      sendJson(res, 500, { ok: false, provider: storageProvider(), error: error.message || 'failed to read conversation log' });
+    }
+    return true;
+  }
+
   if (req.method === 'POST' && pathname === '/api/session') {
     sendJson(res, 201, {
       ok: true,
@@ -198,7 +223,7 @@ async function handleApi(req, res, pathname) {
             ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
             : scene.subtitle;
       }
-      sendJson(res, 200, {
+      const responsePayload = {
         ok: true,
         provider,
         model: provider === 'openai-api' ? model : null,
@@ -214,7 +239,26 @@ async function handleApi(req, res, pathname) {
           subtitle,
         },
         search,
+      };
+      const event = createConversationEvent({
+        sessionId: responsePayload.sessionId,
+        userMessage: message,
+        assistantMessage: subtitle,
+        provider,
+        model: responsePayload.model,
+        status: responsePayload.reply.status,
+        search,
       });
+      try {
+        responsePayload.persistence = await persistConversationEvent(event);
+      } catch (persistError) {
+        responsePayload.persistence = {
+          stored: false,
+          provider: storageProvider(),
+          error: persistError.message || 'conversation persistence failed',
+        };
+      }
+      sendJson(res, 200, responsePayload);
     } catch (error) {
       sendJson(res, 400, { ok: false, error: error.message || 'invalid request' });
     }

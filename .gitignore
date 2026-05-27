@@ -5,5 +5,7 @@
 node_modules/
 .vercel/
 data/reactions.jsonl
+data/conversation-events.jsonl
 npm-debug.log*
 .vercel
+.env*.local

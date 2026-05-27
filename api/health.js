@@ -1,5 +1,6 @@
 const { readJson } = require('./_shared');
 const { DEFAULT_MODEL } = require('../openai-dialogue');
+const { storageProvider } = require('../conversation-store');
 
 module.exports = function handler(req, res) {
   const experience = readJson('experience.json');
@@ -14,6 +15,7 @@ module.exports = function handler(req, res) {
     searchProvider: 'google-search-ts',
     searchRouter: 'ai-sdk-structured-output',
     phonebook: true,
+    persistenceProvider: storageProvider(),
     model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };
