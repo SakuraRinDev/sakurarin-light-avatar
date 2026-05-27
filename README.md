@@ -7,6 +7,7 @@ Bright web prototype for a clumsy, cute, non-human light avatar.
 - Browser model key: none
 - Server role: Codex APP server
 - Model plan: server-side OpenAI API responses from `/api/dialogue` using `gpt-5-nano`, with local Codex App Server and scripted fallback
+- Google search: `/api/search` and search-intent chat replies use the OSS `google-search-ts` package. If Google web HTML is blocked, the server falls back to Google News RSS results.
 - BGM asset: `assets/audio/suno-glass-archive.mp3`
 
 ## Run
@@ -22,6 +23,7 @@ Open `http://127.0.0.1:5182`.
 ```bash
 npm run check
 curl http://127.0.0.1:5182/api/experience
+curl "http://127.0.0.1:5182/api/search?q=OpenAI"
 ```
 
 ## Codex App Server

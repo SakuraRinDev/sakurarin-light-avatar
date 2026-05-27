@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
+const { cleanQueryPart, searchGoogle } = require('./google-search');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -105,8 +106,31 @@ async function handleApi(req, res, pathname) {
       subtitles: true,
       serverRole: experience.modelPlan.serverRole,
       dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'codex-app-server',
+      searchProvider: 'google-search-ts',
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
+    return true;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/search') {
+    try {
+      let query = '';
+      if (req.method === 'GET') {
+        query = new URL(req.url, `http://${req.headers.host}`).searchParams.get('q') || '';
+      } else {
+        const body = await readBody(req);
+        const parsed = JSON.parse(body || '{}');
+        query = parsed.query || parsed.q || '';
+      }
+      const payload = await searchGoogle(cleanQueryPart(query), { limit: 5 });
+      sendJson(res, 200, { ok: true, ...payload });
+    } catch (error) {
+      sendJson(res, 502, {
+        ok: false,
+        provider: 'google-search-ts',
+        error: error.message || 'Google search failed',
+      });
+    }
     return true;
   }
 
@@ -138,10 +162,12 @@ async function handleApi(req, res, pathname) {
       let subtitle = '';
       let provider = 'openai-api';
       let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+      let search = null;
       try {
         const reply = await askOpenAI(message, { cwd: rootDir });
         subtitle = reply.subtitle;
         model = reply.model;
+        search = reply.search || null;
       } catch (error) {
         provider = 'codex-app-server';
         try {
@@ -166,6 +192,7 @@ async function handleApi(req, res, pathname) {
           status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
           subtitle,
         },
+        search,
       });
     } catch (error) {
       sendJson(res, 400, { ok: false, error: error.message || 'invalid request' });

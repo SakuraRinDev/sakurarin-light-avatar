@@ -11,6 +11,7 @@ module.exports = function handler(req, res) {
     subtitles: true,
     serverRole: experience.modelPlan.serverRole,
     dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'scripted-fallback',
+    searchProvider: 'google-search-ts',
     model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };

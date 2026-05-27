@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
+const { cleanQueryPart, searchGoogle } = require('../google-search');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -30,10 +31,12 @@ async function sendDialogue(req, res) {
   let subtitle = '';
   let provider = 'openai-api';
   let model = DEFAULT_MODEL;
+  let search = null;
   try {
     const reply = await askOpenAI(message, { cwd: rootDir });
     subtitle = reply.subtitle;
     model = reply.model;
+    search = reply.search || null;
   } catch (error) {
     provider = 'scripted-fallback';
   }
@@ -53,7 +56,22 @@ async function sendDialogue(req, res) {
       status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
       subtitle,
     },
+    search,
   });
+}
+
+async function sendSearch(req, res) {
+  const query = cleanQueryPart((req.method === 'GET' ? req.query?.q : req.body?.query || req.body?.q) || '');
+  try {
+    const payload = await searchGoogle(query, { limit: 5 });
+    res.status(200).json({ ok: true, ...payload });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: 'google-search-ts',
+      error: error.message || 'Google search failed',
+    });
+  }
 }
 
 module.exports = {
@@ -61,4 +79,5 @@ module.exports = {
   readJson,
   safeText,
   sendDialogue,
+  sendSearch,
 };
