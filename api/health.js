@@ -1,4 +1,5 @@
 const { readJson } = require('./_shared');
+const { DEFAULT_MODEL } = require('../openai-dialogue');
 
 module.exports = function handler(req, res) {
   const experience = readJson('experience.json');
@@ -9,6 +10,7 @@ module.exports = function handler(req, res) {
     audio: experience.audio.enabled,
     subtitles: true,
     serverRole: experience.modelPlan.serverRole,
-    dialogueProvider: 'scripted-vercel',
+    dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'scripted-fallback',
+    model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };

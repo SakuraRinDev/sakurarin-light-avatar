@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -22,20 +23,35 @@ function pickReply(message, scenes) {
   return scenes[Math.floor(Math.random() * scenes.length)];
 }
 
-function sendDialogue(req, res) {
+async function sendDialogue(req, res) {
   const scenes = readJson('scenes.json');
   const message = safeText(req.body && req.body.message, 'こんにちは');
   const scene = pickReply(message, scenes) || scenes[0];
+  let subtitle = '';
+  let provider = 'openai-api';
+  let model = DEFAULT_MODEL;
+  try {
+    const reply = await askOpenAI(message, { cwd: rootDir });
+    subtitle = reply.subtitle;
+    model = reply.model;
+  } catch (error) {
+    provider = 'scripted-fallback';
+  }
+  if (!subtitle) {
+    subtitle =
+      message.length > 0
+        ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
+        : scene.subtitle;
+  }
   res.status(200).json({
     ok: true,
-    provider: 'scripted-vercel',
+    provider,
+    model,
     sessionId: safeText(req.body && req.body.sessionId, `sess_${Date.now()}`),
     reply: {
       ...scene,
-      subtitle:
-        message.length > 0
-          ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
-          : scene.subtitle,
+      status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
+      subtitle,
     },
   });
 }

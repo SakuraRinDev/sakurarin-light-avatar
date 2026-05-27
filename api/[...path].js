@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -36,7 +37,8 @@ module.exports = async function handler(req, res) {
       audio: experience.audio.enabled,
       subtitles: true,
       serverRole: experience.modelPlan.serverRole,
-      dialogueProvider: 'scripted-vercel',
+      dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'scripted-fallback',
+      model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return;
   }
@@ -59,16 +61,31 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST' && (route === '/chat' || route === '/dialogue')) {
     const message = safeText(req.body && req.body.message, 'こんにちは');
     const scene = pickReply(message, scenes) || scenes[0];
+    let subtitle = '';
+    let provider = 'openai-api';
+    let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+    try {
+      const reply = await askOpenAI(message, { cwd: rootDir });
+      subtitle = reply.subtitle;
+      model = reply.model;
+    } catch (error) {
+      provider = 'scripted-fallback';
+    }
+    if (!subtitle) {
+      subtitle =
+        message.length > 0
+          ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
+          : scene.subtitle;
+    }
     res.status(200).json({
       ok: true,
-      provider: 'scripted-vercel',
+      provider,
+      model,
       sessionId: safeText(req.body && req.body.sessionId, `sess_${Date.now()}`),
       reply: {
         ...scene,
-        subtitle:
-          message.length > 0
-            ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
-            : scene.subtitle,
+        status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
+        subtitle,
       },
     });
     return;

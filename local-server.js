@@ -2,12 +2,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { CodexAppServerBridge } = require('./codex-bridge');
+const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
 const reactionsFile = path.join(dataDir, 'reactions.jsonl');
 const port = Number(process.env.PORT || 5182);
 const codexBridge = new CodexAppServerBridge({ cwd: rootDir });
+loadLocalEnv(rootDir);
 
 function readJson(name) {
   return JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8'));
@@ -102,7 +104,8 @@ async function handleApi(req, res, pathname) {
       audio: experience.audio.enabled,
       subtitles: true,
       serverRole: experience.modelPlan.serverRole,
-      dialogueProvider: 'codex-app-server',
+      dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'codex-app-server',
+      model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
   }
@@ -133,11 +136,19 @@ async function handleApi(req, res, pathname) {
       const message = safeText(parsed.message, 'こんにちは');
       const scene = sceneForCodexReply(message, scenes);
       let subtitle = '';
-      let provider = 'codex-app-server';
+      let provider = 'openai-api';
+      let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
       try {
-        subtitle = await codexBridge.ask(message);
+        const reply = await askOpenAI(message, { cwd: rootDir });
+        subtitle = reply.subtitle;
+        model = reply.model;
       } catch (error) {
-        provider = 'scripted-fallback';
+        provider = 'codex-app-server';
+        try {
+          subtitle = await codexBridge.ask(message);
+        } catch (codexError) {
+          provider = 'scripted-fallback';
+        }
       }
       if (!subtitle) {
         subtitle =
@@ -148,9 +159,11 @@ async function handleApi(req, res, pathname) {
       sendJson(res, 200, {
         ok: true,
         provider,
+        model: provider === 'openai-api' ? model : null,
         sessionId: safeText(parsed.sessionId, `sess_${Date.now()}`),
         reply: {
           ...scene,
+          status: provider === 'openai-api' ? 'OpenAIから返事中' : scene.status,
           subtitle,
         },
       });

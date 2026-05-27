@@ -6,7 +6,7 @@ Bright web prototype for a clumsy, cute, non-human light avatar.
 - Subtitles: enabled
 - Browser model key: none
 - Server role: Codex APP server
-- Initial model plan: local Codex App Server responses from `/api/dialogue`, with scripted fallback
+- Model plan: server-side OpenAI API responses from `/api/dialogue` using `gpt-5-nano`, with local Codex App Server and scripted fallback
 - BGM asset: `assets/audio/suno-glass-archive.mp3`
 
 ## Run
@@ -26,10 +26,11 @@ curl http://127.0.0.1:5182/api/experience
 
 ## Codex App Server
 
-`local-server.js` lazily starts:
+When `OPENAI_API_KEY` is configured, `/api/dialogue` uses the OpenAI API with `gpt-5-nano`.
+If that fails locally, `local-server.js` falls back to Codex App Server and lazily starts:
 
 ```bash
 codex app-server --listen stdio://
 ```
 
-The browser never receives model credentials. `/api/dialogue` talks to Codex through `codex-bridge.js`, then returns only subtitle text and motion/status hints.
+The browser never receives model credentials. `/api/dialogue` returns only subtitle text and motion/status hints.
