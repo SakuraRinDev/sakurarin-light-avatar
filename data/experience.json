@@ -1,6 +1,6 @@
 {
   "id": "sakurarin-light-avatar",
-  "title": "SakuraRin Light Avatar",
+  "title": "Poka Official Mascot Mock",
   "audio": {
     "enabled": true,
     "bgm": "assets/audio/suno-glass-archive.mp3",
@@ -22,6 +22,8 @@
   "visual": {
     "background": "bright",
     "avatarType": "clumsy-soft-light",
+    "characterName": "Poka",
+    "mockRole": "SakuraRin official mascot",
     "humanAvatar": false,
     "palette": ["warm white", "peach", "lemon", "aqua", "pale lavender"]
   }

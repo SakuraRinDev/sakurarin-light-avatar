@@ -213,7 +213,7 @@
     drive.speaking = false;
     drive.target = 0.18;
     sceneEl?.classList.remove("is-speaking");
-    setStatus("ぼーっとしてる");
+    setStatus("出番待ち");
   }
 
   function triggerClumsy() {

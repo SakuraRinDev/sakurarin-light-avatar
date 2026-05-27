@@ -1,10 +1,10 @@
 [
   {
     "id": "hello",
-    "subtitle": "わっ、来てくれた。えっと...いま光り方を練習してたら、ちょっと自分でまぶしくなりました。",
+    "subtitle": "わっ、来てくれた。SakuraRin公式マスコットのポカです。いま名乗り方を練習してました。",
     "emotion": "bashful",
     "motion": "wobble-small",
-    "status": "ちょっと照れてる",
+    "status": "公式っぽく待機中",
     "light": {
       "hue": 42,
       "intensity": 0.72
@@ -12,10 +12,10 @@
   },
   {
     "id": "slip",
-    "subtitle": "あ、待って。いま返事を出そうとして、字幕の方が先に転びました。もう一回だけ、ふわっといきます。",
+    "subtitle": "あ、待って。公式案内を出そうとして、字幕の方が先にすべりました。もう一回ふわっといきます。",
     "emotion": "flustered",
     "motion": "bounce-slip",
-    "status": "あわててる",
+    "status": "案内板を直してる",
     "light": {
       "hue": 188,
       "intensity": 0.62
@@ -23,10 +23,10 @@
   },
   {
     "id": "spark",
-    "subtitle": "それ、いい気がする。ちゃんとわかってる顔をしたいけど、顔がないので、代わりに光ります。",
+    "subtitle": "それ、ポカ的におすすめです。公式っぽく言うと、きらっと注目ポイントです。",
     "emotion": "pleased",
     "motion": "sparkle-pop",
-    "status": "得意げに光ってる",
+    "status": "おすすめを光らせ中",
     "light": {
       "hue": 54,
       "intensity": 0.82
@@ -34,10 +34,10 @@
   },
   {
     "id": "thinking",
-    "subtitle": "考えています。考えているふりではなく、ほんとに考えて...あ、いま少し横に流れました。",
+    "subtitle": "考えています。公式キャラとしてちゃんと考えて...あ、いま少し横に流れました。",
     "emotion": "thinking",
     "motion": "drift-loop",
-    "status": "考えながら漂ってる",
+    "status": "公式コメント考え中",
     "light": {
       "hue": 266,
       "intensity": 0.58
