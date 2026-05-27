@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { createSearchSubtitle, extractSearchQuery, formatSearchContext, searchGoogle } = require('./google-search');
+const { createSearchSubtitle, formatSearchContext, searchGoogle } = require('./google-search');
+const { decideSearch } = require('./search-router');
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
 
@@ -44,7 +45,8 @@ async function askOpenAI(message, options = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
-  const searchQuery = extractSearchQuery(message);
+  const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
+  const searchQuery = searchDecision.needsSearch ? searchDecision.query : null;
   let searchPayload = null;
   if (searchQuery) {
     try {
@@ -58,6 +60,7 @@ async function askOpenAI(message, options = {}) {
         error: error.message || 'Google search failed',
       };
     }
+    searchPayload.decision = searchDecision;
     return {
       provider: 'google-search',
       model: options.model || DEFAULT_MODEL,

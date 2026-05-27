@@ -8,7 +8,10 @@
     "check": "node -e \"fetch('http://127.0.0.1:5182/api/health').then(r=>r.json()).then(j=>{if(!j.ok)process.exit(1);console.log(JSON.stringify(j))})\""
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.65",
+    "ai": "^6.0.191",
     "cheerio": "^1.0.0",
-    "google-search-ts": "^1.0.1"
+    "google-search-ts": "^1.0.1",
+    "zod": "^4.4.3"
   }
 }
