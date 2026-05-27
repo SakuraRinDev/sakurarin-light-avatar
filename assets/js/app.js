@@ -20,21 +20,10 @@
   const form = document.getElementById("compose");
   const input = document.getElementById("compose-input");
   const sendBtn = document.getElementById("compose-send");
-  const micBtn = document.getElementById("mic");
   const soundToggle = document.getElementById("sound-toggle");
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
   const sfx = audio?.sfx || {};
-
-  /* mic is decorative for now — show a friendly hint, no audio capture */
-  if (micBtn) {
-    micBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      sfx.tap?.();
-      setStatus("マイクはまだ準備中…");
-      setTimeout(setIdle, 1400);
-    });
-  }
 
   if (soundToggle) {
     audio?.init();
