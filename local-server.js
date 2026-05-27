@@ -4,6 +4,7 @@ const path = require('path');
 const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('./google-search');
+const { normalizeContacts } = require('./phonebook');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -108,6 +109,7 @@ async function handleApi(req, res, pathname) {
       dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'codex-app-server',
       searchProvider: 'google-search-ts',
       searchRouter: 'ai-sdk-structured-output',
+      phonebook: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
@@ -142,6 +144,18 @@ async function handleApi(req, res, pathname) {
 
   if (req.method === 'GET' && pathname === '/api/scenes') {
     sendJson(res, 200, { ok: true, scenes });
+    return true;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/contacts') {
+    const contacts = normalizeContacts(readJson('contacts.json'));
+    sendJson(res, 200, {
+      ok: true,
+      source: 'local-demo-vcard-schemaorg',
+      formatBasis: ['vCard RFC 6350', 'schema.org Person/ContactPoint'],
+      validator: 'libphonenumber-js',
+      contacts,
+    });
     return true;
   }
 

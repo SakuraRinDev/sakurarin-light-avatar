@@ -130,12 +130,14 @@
           <span class="dock__sound-label">BGM</span>
         </button>
 
-        <a
-          id="call-link"
+        <button
+          id="phonebook-toggle"
           class="dock__call"
-          href="tel:+810000000000"
-          aria-label="端末の電話アプリを開く"
-          title="CALL"
+          type="button"
+          aria-label="電話帳を開く"
+          aria-expanded="false"
+          aria-controls="phonebook"
+          title="PHONE"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -144,12 +146,31 @@
             />
           </svg>
           <span>CALL</span>
-        </a>
+        </button>
       </div>
     </main>
 
+    <aside
+      id="phonebook"
+      class="phonebook"
+      aria-label="電話帳"
+      aria-hidden="true"
+    >
+      <div class="phonebook__panel" role="dialog" aria-modal="true" aria-labelledby="phonebook-title">
+        <header class="phonebook__head">
+          <div>
+            <p class="phonebook__eyebrow">PHONEBOOK</p>
+            <h2 id="phonebook-title">連絡先</h2>
+          </div>
+          <button id="phonebook-close" class="phonebook__close" type="button" aria-label="電話帳を閉じる">×</button>
+        </header>
+        <div id="phonebook-list" class="phonebook__list" aria-live="polite"></div>
+      </div>
+    </aside>
+
     <script src="assets/js/audio.js" defer></script>
     <script src="assets/js/dialogue.js" defer></script>
+    <script src="assets/js/phonebook.js" defer></script>
     <script src="assets/js/app.js" defer></script>
   </body>
 </html>

@@ -431,9 +431,238 @@ input {
 .dock__call {
   color: #c98932;
   text-decoration: none;
+  font: inherit;
+  cursor: pointer;
   background:
     radial-gradient(circle at 34% 28%, rgba(255,255,255,0.98), rgba(255,255,255,0.4) 58%, rgba(255, 214, 151, 0.32)),
     linear-gradient(135deg, rgba(255,255,255,0.48), rgba(255, 179, 216, 0.22));
+}
+
+.phonebook {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.38);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  transition: opacity 0.22s var(--ease);
+}
+
+.phonebook.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.phonebook__panel {
+  width: min(760px, 100%);
+  max-height: min(78vh, 720px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid rgba(255,255,255,0.86);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 236, 190, 0.86), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,0.94), rgba(232, 248, 255, 0.82));
+  box-shadow: 0 24px 80px rgba(93, 137, 166, 0.28);
+  overflow: hidden;
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.22s var(--ease);
+}
+
+.phonebook.is-open .phonebook__panel {
+  transform: translateY(0) scale(1);
+}
+
+.phonebook__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 18px 12px 22px;
+}
+
+.phonebook__eyebrow {
+  margin: 0 0 3px;
+  color: rgba(47, 40, 72, 0.45);
+  font-family: var(--font-en);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.phonebook__head h2 {
+  margin: 0;
+  color: rgba(47, 40, 72, 0.86);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.phonebook__close {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 50%;
+  color: rgba(47, 40, 72, 0.62);
+  background: rgba(255,255,255,0.52);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.9);
+  cursor: pointer;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.phonebook__list {
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+  padding: 0 18px 18px;
+  overflow: auto;
+}
+
+.phonebook__loading {
+  margin: 16px 4px 24px;
+  color: rgba(47, 40, 72, 0.58);
+  font-weight: 800;
+}
+
+.contact-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.52);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.88);
+}
+
+.contact-card__avatar {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(circle at 32% 26%, #fff, #ffd777 34%, #ff9fc9 66%, #9cecff 100%);
+  box-shadow: 0 12px 28px rgba(255, 165, 125, 0.26);
+  font-family: var(--font-en);
+  font-weight: 900;
+}
+
+.contact-card__body {
+  min-width: 0;
+}
+
+.contact-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contact-card h3 {
+  margin: 0 0 3px;
+  color: rgba(47, 40, 72, 0.86);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.contact-card p {
+  margin: 0;
+}
+
+.contact-card__top p,
+.contact-card__note {
+  color: rgba(47, 40, 72, 0.58);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.contact-card__fav {
+  align-self: start;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #bf7b24;
+  background: rgba(255, 228, 171, 0.72);
+  font-family: var(--font-en);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.contact-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 11px 0;
+}
+
+.contact-card__meta div {
+  min-width: 0;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.46);
+}
+
+.contact-card__meta dt {
+  color: rgba(47, 40, 72, 0.4);
+  font-family: var(--font-en);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.contact-card__meta dd {
+  margin: 2px 0 0;
+  color: rgba(47, 40, 72, 0.76);
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.contact-card__meta small {
+  color: #c98924;
+  font-size: 10px;
+}
+
+.contact-card__tags,
+.contact-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.contact-card__tags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: rgba(47, 40, 72, 0.54);
+  background: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.contact-card__call,
+.contact-card__mail {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.contact-card__call {
+  color: #fff;
+  background: linear-gradient(135deg, #ffb05c, #ff8ebe 58%, #7bdff7);
+}
+
+.contact-card__mail {
+  color: rgba(47, 40, 72, 0.68);
+  background: rgba(255,255,255,0.58);
 }
 
 .dock__sound:hover,
@@ -742,6 +971,30 @@ input {
   .dock__send {
     width: 44px;
     height: 44px;
+  }
+
+  .phonebook {
+    padding: 12px;
+  }
+
+  .phonebook__panel {
+    max-height: 82vh;
+    border-radius: 18px;
+  }
+
+  .contact-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .contact-card__avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .contact-card__meta {
+    grid-template-columns: 1fr;
   }
 }
 

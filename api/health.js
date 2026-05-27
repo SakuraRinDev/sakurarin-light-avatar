@@ -13,6 +13,7 @@ module.exports = function handler(req, res) {
     dialogueProvider: process.env.OPENAI_API_KEY ? 'openai-api' : 'scripted-fallback',
     searchProvider: 'google-search-ts',
     searchRouter: 'ai-sdk-structured-output',
+    phonebook: true,
     model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };

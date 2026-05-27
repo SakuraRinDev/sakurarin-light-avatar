@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
+const { normalizeContacts } = require('../phonebook');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -80,10 +81,22 @@ async function sendSearch(req, res) {
   }
 }
 
+function sendContacts(req, res) {
+  const contacts = normalizeContacts(readJson('contacts.json'));
+  res.status(200).json({
+    ok: true,
+    source: 'local-demo-vcard-schemaorg',
+    formatBasis: ['vCard RFC 6350', 'schema.org Person/ContactPoint'],
+    validator: 'libphonenumber-js',
+    contacts,
+  });
+}
+
 module.exports = {
   pickReply,
   readJson,
   safeText,
+  sendContacts,
   sendDialogue,
   sendSearch,
 };
