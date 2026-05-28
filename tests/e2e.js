@@ -143,6 +143,11 @@ async function testBrowser() {
     await page.waitForFunction(() => document.querySelector('#location-toggle')?.classList.contains('is-on'), null, {
       timeout: 10000,
     });
+    const dialogueBodies = [];
+    await page.route('**/api/dialogue', async (route) => {
+      dialogueBodies.push(JSON.parse(route.request().postData() || '{}'));
+      await route.continue();
+    });
     await page.fill('#compose-input', 'このUIの改善を相談したい');
     await page.click('#compose-send');
     await page.waitForFunction(() => document.querySelector('#subtitle-source')?.textContent === 'api', null, {
@@ -163,6 +168,16 @@ async function testBrowser() {
     assert.match(chat.skill, /frontend-design/);
     assert.equal(chat.locationOn, true);
     assert.equal(chat.noHorizontalScroll, true);
+    assert.equal(dialogueBodies.at(-1)?.location, null);
+
+    await page.fill('#compose-input', '現在地の近くで何できる？');
+    await page.click('#compose-send');
+    await page.waitForFunction(() => document.querySelector('#skill-label')?.textContent.includes('location-context'), null, {
+      timeout: 12000,
+    });
+    assert.equal(dialogueBodies.at(-1)?.location?.latitude, 35.681);
+    assert.equal(dialogueBodies.at(-1)?.location?.longitude, 139.767);
+    assert.equal(typeof dialogueBodies.at(-1)?.location?.accuracy, 'number');
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

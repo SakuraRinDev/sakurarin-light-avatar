@@ -90,6 +90,11 @@
     locationToggle.setAttribute("aria-pressed", location ? "true" : "false");
   }
 
+  function shouldSendLocation(message) {
+    if (!window.PokaLocation) return false;
+    return /位置情報|現在地|近く|周辺|場所|道案内|ここから|行き方|何分|どこ|店|イベント|会場/.test(message);
+  }
+
   locationToggle?.addEventListener("click", () => {
     if (window.PokaLocation) {
       setLocationState(null);
@@ -330,7 +335,7 @@
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
     const { reply, source, status, motion, skill } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
-      location: window.PokaLocation || null,
+      location: shouldSendLocation(message) ? window.PokaLocation : null,
     });
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();
