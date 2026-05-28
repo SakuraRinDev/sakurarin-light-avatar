@@ -3,6 +3,7 @@ const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
 const { normalizeContacts } = require('../phonebook');
+const { sanitizeLocation } = require('../location-context');
 const {
   createConversationEvent,
   listConversationEvents,
@@ -47,8 +48,9 @@ async function sendDialogue(req, res) {
   let model = DEFAULT_MODEL;
   let search = null;
   let skill = routeSkill(message);
+  const location = sanitizeLocation(req.body && req.body.location);
   try {
-    const reply = await askOpenAI(message, { cwd: rootDir });
+    const reply = await askOpenAI(message, { cwd: rootDir, location });
     subtitle = reply.subtitle;
     provider = reply.provider || provider;
     model = reply.model;
@@ -80,6 +82,7 @@ async function sendDialogue(req, res) {
     },
     search,
     skill,
+    location,
   };
 
   const event = createConversationEvent({
@@ -91,6 +94,7 @@ async function sendDialogue(req, res) {
     status: responsePayload.reply.status,
     search,
     skill,
+    location,
   });
   try {
     responsePayload.persistence = await persistConversationEvent(event);

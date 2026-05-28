@@ -22,6 +22,7 @@
   const input = document.getElementById("compose-input");
   const sendBtn = document.getElementById("compose-send");
   const soundToggle = document.getElementById("sound-toggle");
+  const locationToggle = document.getElementById("location-toggle");
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
   const sfx = audio?.sfx || {};
@@ -77,6 +78,56 @@
   function setStatus(text) {
     statusEl.textContent = text;
   }
+
+  function roundCoord(value) {
+    return Math.round(Number(value) * 1000) / 1000;
+  }
+
+  function setLocationState(location) {
+    window.PokaLocation = location || null;
+    if (!locationToggle) return;
+    locationToggle.classList.toggle("is-on", Boolean(location));
+    locationToggle.setAttribute("aria-pressed", location ? "true" : "false");
+  }
+
+  locationToggle?.addEventListener("click", () => {
+    if (window.PokaLocation) {
+      setLocationState(null);
+      setStatus("現在地オフ");
+      sfx.tap?.();
+      return;
+    }
+    if (!navigator.geolocation) {
+      setStatus("位置情報なし");
+      setSubtitle("この端末では現在地が使えないみたい。こてっ。", "fallback");
+      sfx.error?.();
+      return;
+    }
+    locationToggle.disabled = true;
+    setStatus("現在地確認中…");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = position.coords || {};
+        setLocationState({
+          latitude: roundCoord(coords.latitude),
+          longitude: roundCoord(coords.longitude),
+          accuracy: Math.round(Number(coords.accuracy || 0)),
+          capturedAt: new Date().toISOString(),
+        });
+        locationToggle.disabled = false;
+        setStatus("現在地オン");
+        sfx.sparkle?.();
+      },
+      () => {
+        setLocationState(null);
+        locationToggle.disabled = false;
+        setStatus("現在地オフ");
+        setSubtitle("現在地の許可が取れなかったみたい。ポカ、ちょっと迷子です。", "fallback");
+        sfx.error?.();
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+    );
+  });
 
   /* ----------------------- render loop ----------------------- */
   function wobble(t, k = 1) {
@@ -278,7 +329,9 @@
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
-    const { reply, source, status, motion, skill } = await window.PokaDialogue.ask(message, window.PokaSessionId);
+    const { reply, source, status, motion, skill } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
+      location: window.PokaLocation || null,
+    });
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();
     if (source === "api") sfx.sparkle?.();

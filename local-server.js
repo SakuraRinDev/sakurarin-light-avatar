@@ -5,6 +5,7 @@ const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('./google-search');
 const { normalizeContacts } = require('./phonebook');
+const { sanitizeLocation } = require('./location-context');
 const {
   createConversationEvent,
   listConversationEvents,
@@ -125,6 +126,7 @@ async function handleApi(req, res, pathname) {
       phonebook: true,
       persistenceProvider: storageProvider(),
       feedback: true,
+      location: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
@@ -250,8 +252,9 @@ async function handleApi(req, res, pathname) {
       let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
       let search = null;
       let skill = routeSkill(message);
+      const location = sanitizeLocation(parsed.location);
       try {
-        const reply = await askOpenAI(message, { cwd: rootDir });
+        const reply = await askOpenAI(message, { cwd: rootDir, location });
         subtitle = reply.subtitle;
         provider = reply.provider || provider;
         model = reply.model;
@@ -288,6 +291,7 @@ async function handleApi(req, res, pathname) {
         },
         search,
         skill,
+        location,
       };
       const event = createConversationEvent({
         sessionId: responsePayload.sessionId,
@@ -298,6 +302,7 @@ async function handleApi(req, res, pathname) {
         status: responsePayload.reply.status,
         search,
         skill,
+        location,
       });
       try {
         responsePayload.persistence = await persistConversationEvent(event);

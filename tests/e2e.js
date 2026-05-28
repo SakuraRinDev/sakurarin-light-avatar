@@ -22,6 +22,7 @@ async function testApi() {
   assert.equal(health.ok, true);
   assert.equal(health.subtitles, true);
   assert.equal(health.phonebook, true);
+  assert.equal(health.location, true);
   assert.ok(['local-jsonl', 'vercel-kv-rest'].includes(health.persistenceProvider));
 
   const contacts = await json('/api/contacts');
@@ -83,12 +84,29 @@ async function testApi() {
   });
   assert.equal(skillDialogue.ok, true);
   assert.equal(skillDialogue.skill?.id, 'frontend-design');
+
+  const locationDialogue = await json('/api/dialogue', {
+    method: 'POST',
+    body: JSON.stringify({
+      sessionId: `${sessionId}_location`,
+      message: '現在地の近くで何できる？',
+      location: { latitude: 35.681236, longitude: 139.767125, accuracy: 12 },
+    }),
+  });
+  assert.equal(locationDialogue.ok, true);
+  assert.equal(locationDialogue.skill?.id, 'location-context');
+  assert.deepEqual(locationDialogue.location, { latitude: 35.681, longitude: 139.767, accuracy: 12 });
 }
 
 async function testBrowser() {
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      geolocation: { latitude: 35.681236, longitude: 139.767125 },
+      permissions: ['geolocation'],
+    });
+    const page = await context.newPage();
     const errors = [];
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(message.text());
@@ -121,6 +139,10 @@ async function testBrowser() {
     assert.equal(phonebook.noHorizontalScroll, true);
 
     await page.click('#phonebook-close');
+    await page.click('#location-toggle');
+    await page.waitForFunction(() => document.querySelector('#location-toggle')?.classList.contains('is-on'), null, {
+      timeout: 10000,
+    });
     await page.fill('#compose-input', 'このUIの改善を相談したい');
     await page.click('#compose-send');
     await page.waitForFunction(() => document.querySelector('#subtitle-source')?.textContent === 'api', null, {
@@ -133,11 +155,13 @@ async function testBrowser() {
       source: document.querySelector('#subtitle-source')?.textContent,
       subtitle: document.querySelector('#subtitle-text')?.textContent,
       skill: document.querySelector('#skill-label')?.textContent,
+      locationOn: document.querySelector('#location-toggle')?.classList.contains('is-on'),
       noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
     }));
     assert.equal(chat.source, 'api');
     assert.ok(chat.subtitle);
     assert.match(chat.skill, /frontend-design/);
+    assert.equal(chat.locationOn, true);
     assert.equal(chat.noHorizontalScroll, true);
     assert.deepEqual(errors, []);
   } finally {

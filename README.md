@@ -10,6 +10,7 @@ Bright web prototype for a clumsy, cute, non-human light avatar.
 - Search router: chat replies use the OSS Vercel AI SDK structured-output router to decide whether live search is needed, with a heuristic fallback.
 - Google search: `/api/search` and search-needed chat replies use the OSS `google-search-ts` package. If Google web HTML is blocked, the server falls back to Google News RSS results.
 - Skills: consultation-style chat can route to the bundled skill catalog in `data/skills.json`; matching skill metadata is returned as `skill` and shown in the subtitle dock.
+- Location: the `LOC` button uses the browser Geolocation API only after user permission. Rounded coordinates are sent to `/api/dialogue` as optional context and stored with reduced precision.
 - Phonebook: `/api/contacts` returns demo contacts shaped around vCard/schema.org-style fields and normalized with OSS `libphonenumber-js`. The browser opens device calling via per-contact `tel:` links; no real phone numbers are bundled.
 - Conversation persistence: `/api/dialogue` stores user/assistant turns. On Vercel it uses KV/Upstash REST when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are configured; otherwise local development falls back to `data/conversation-events.jsonl`. Read the latest turns from `/api/conversations`.
 - Feedback: the header request button posts improvement requests to `/api/feedback`, stored in the same Vercel KV/local JSONL pattern and readable from `/api/feedback?limit=30`.

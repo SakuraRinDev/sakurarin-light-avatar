@@ -40,6 +40,13 @@ function createConversationEvent(input) {
           score: Number(input.skill.score || 0),
         }
       : null,
+    location: input.location
+      ? {
+          latitude: Number(input.location.latitude),
+          longitude: Number(input.location.longitude),
+          accuracy: input.location.accuracy === null ? null : Number(input.location.accuracy),
+        }
+      : null,
   };
 }
 
