@@ -15,6 +15,7 @@
   const subtitleEl = document.getElementById("subtitle-text");
   const sourceEl = document.getElementById("subtitle-source");
   const skillEl = document.getElementById("skill-label");
+  const mcpEl = document.getElementById("mcp-label");
   const statusEl = document.getElementById("status-label");
   const avatarBox = document.getElementById("avatar");
   const sceneEl = document.querySelector(".scene");
@@ -321,6 +322,12 @@
     skillEl.textContent = skill?.id ? `skill:${skill.id}` : "";
   }
 
+  function setMcp(tools) {
+    if (!mcpEl) return;
+    const first = Array.isArray(tools) ? tools[0] : null;
+    mcpEl.textContent = first?.name ? `mcp:${first.name}` : "";
+  }
+
   /* ----------------------- form ----------------------- */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -334,7 +341,7 @@
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
-    const { reply, source, status, motion, skill } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
+    const { reply, source, status, motion, skill, mcp } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
       location: shouldSendLocation(message) ? window.PokaLocation : null,
     });
     if (status) setStatus(status);
@@ -342,6 +349,7 @@
     if (source === "api") sfx.sparkle?.();
     else sfx.error?.();
     setSkill(skill);
+    setMcp(mcp);
     setSubtitle(reply, source);
     input.value = "";
     sendBtn.disabled = false;

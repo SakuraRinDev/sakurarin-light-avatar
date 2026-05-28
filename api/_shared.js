@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
+const { createMcpManifest, listMcpTools, loadMcpServers, matchMcpTools } = require('../mcp-registry');
 const { normalizeContacts } = require('../phonebook');
 const { sanitizeLocation } = require('../location-context');
 const {
@@ -17,6 +18,7 @@ const {
   storageProvider: feedbackStorageProvider,
 } = require('../feedback-store');
 const { routeSkill } = require('../skill-router');
+const { loadSkills } = require('../skill-router');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -48,6 +50,7 @@ async function sendDialogue(req, res) {
   let model = DEFAULT_MODEL;
   let search = null;
   let skill = routeSkill(message);
+  let mcp = matchMcpTools(message);
   const location = sanitizeLocation(req.body && req.body.location);
   try {
     const reply = await askOpenAI(message, { cwd: rootDir, location });
@@ -56,6 +59,7 @@ async function sendDialogue(req, res) {
     model = reply.model;
     search = reply.search || null;
     skill = reply.skill || skill;
+    mcp = reply.mcp || mcp;
   } catch (error) {
     provider = 'scripted-fallback';
   }
@@ -82,6 +86,7 @@ async function sendDialogue(req, res) {
     },
     search,
     skill,
+    mcp,
     location,
   };
 
@@ -94,6 +99,7 @@ async function sendDialogue(req, res) {
     status: responsePayload.reply.status,
     search,
     skill,
+    mcp,
     location,
   });
   try {
@@ -107,6 +113,31 @@ async function sendDialogue(req, res) {
   }
 
   res.status(200).json(responsePayload);
+}
+
+function sendSkills(req, res) {
+  const message = req.method === 'GET' ? req.query?.q : req.body?.message;
+  res.status(200).json({
+    ok: true,
+    count: loadSkills().length,
+    skills: loadSkills(),
+    route: message ? routeSkill(message) : null,
+  });
+}
+
+function sendMcp(req, res) {
+  const message = req.method === 'GET' ? req.query?.q : req.body?.message;
+  res.status(200).json({
+    ok: true,
+    protocol: 'mcp-compatible-registry',
+    servers: loadMcpServers(),
+    tools: listMcpTools(),
+    matches: message ? matchMcpTools(message) : [],
+  });
+}
+
+function sendMcpManifest(req, res) {
+  res.status(200).json({ ok: true, manifest: createMcpManifest() });
 }
 
 async function sendSearch(req, res) {
@@ -201,5 +232,8 @@ module.exports = {
   sendConversationLog,
   sendDialogue,
   sendFeedback,
+  sendMcp,
+  sendMcpManifest,
   sendSearch,
+  sendSkills,
 };

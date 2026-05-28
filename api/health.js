@@ -18,6 +18,8 @@ module.exports = function handler(req, res) {
     persistenceProvider: storageProvider(),
     feedback: true,
     location: true,
+    skills: true,
+    mcp: true,
     model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
   });
 };

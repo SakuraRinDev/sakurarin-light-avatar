@@ -49,6 +49,16 @@
         >
           要望
         </button>
+        <button
+          id="tools-toggle"
+          class="topbar__tools"
+          type="button"
+          aria-label="Skills and MCPを開く"
+          aria-expanded="false"
+          aria-controls="tools-panel"
+        >
+          Tools
+        </button>
       </header>
 
       <section class="scene" aria-label="光の塊アバター">
@@ -104,6 +114,7 @@
               <span class="dock__meta-tag">字幕</span>
               <span id="subtitle-source" class="dock__meta-src">idle</span>
               <span id="skill-label" class="dock__skill" aria-live="polite"></span>
+              <span id="mcp-label" class="dock__mcp" aria-live="polite"></span>
             </span>
             <input
               id="compose-input"
@@ -238,10 +249,38 @@
       </form>
     </aside>
 
+    <aside
+      id="tools-panel"
+      class="tools-panel"
+      aria-label="Skills and MCP"
+      aria-hidden="true"
+    >
+      <div class="tools-panel__card" role="dialog" aria-modal="true" aria-labelledby="tools-title">
+        <header class="tools-panel__head">
+          <div>
+            <p class="tools-panel__eyebrow">SKILLS / MCP</p>
+            <h2 id="tools-title">OSツール</h2>
+          </div>
+          <button id="tools-close" class="tools-panel__close" type="button" aria-label="OSツールを閉じる">×</button>
+        </header>
+        <div class="tools-panel__grid">
+          <section>
+            <h3>Skills</h3>
+            <div id="skills-list" class="tools-panel__list" aria-live="polite"></div>
+          </section>
+          <section>
+            <h3>MCP Tools</h3>
+            <div id="mcp-list" class="tools-panel__list" aria-live="polite"></div>
+          </section>
+        </div>
+      </div>
+    </aside>
+
     <script src="assets/js/audio.js" defer></script>
     <script src="assets/js/dialogue.js" defer></script>
     <script src="assets/js/phonebook.js" defer></script>
     <script src="assets/js/feedback.js" defer></script>
+    <script src="assets/js/tools-panel.js" defer></script>
     <script src="assets/js/app.js" defer></script>
   </body>
 </html>

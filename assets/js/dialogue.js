@@ -38,6 +38,7 @@
         status: data?.reply?.status,
         motion: data?.reply?.motion,
         skill: data?.skill || null,
+        mcp: data?.mcp || [],
       };
     } catch {
       clearTimeout(timeout);

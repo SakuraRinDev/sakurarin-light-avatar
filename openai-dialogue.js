@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createSearchSubtitle, formatSearchContext, searchGoogle } = require('./google-search');
 const { formatLocationContext, sanitizeLocation } = require('./location-context');
+const { formatMcpContext, matchMcpTools } = require('./mcp-registry');
 const { decideSearch } = require('./search-router');
 const { formatSkillContext, routeSkill } = require('./skill-router');
 
@@ -45,6 +46,7 @@ function cleanSubtitle(text) {
 async function askOpenAI(message, options = {}) {
   loadLocalEnv(options.cwd);
   const skill = routeSkill(message);
+  const mcpTools = matchMcpTools(message);
   const location = sanitizeLocation(options.location);
 
   const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
@@ -69,6 +71,7 @@ async function askOpenAI(message, options = {}) {
       subtitle: createSearchSubtitle(searchPayload),
       search: searchPayload,
       skill,
+      mcp: mcpTools,
       location,
     };
   }
@@ -82,6 +85,7 @@ async function askOpenAI(message, options = {}) {
       subtitle: 'BGMをオンにして、今日の気分をポカに聞いてみて。あ、光りすぎた。',
       search: searchPayload,
       skill,
+      mcp: mcpTools,
       location,
     };
   }
@@ -99,6 +103,7 @@ async function askOpenAI(message, options = {}) {
       '映画、食べ物、グッズ、チケット、キャンペーンなど、この画面にないものは絶対におすすめしません。',
       '固有名詞は架空設定として扱い、実在IPや他社キャラクター名は出しません。',
       '参照スキルが入力に含まれる場合は、その指針を優先して、相談に対する具体的な次の一手を短く返してください。',
+      'MCP候補ツールが入力に含まれる場合は、そのツールで扱える機能を前提に短く案内してください。',
       '現在地コンテキストが入力に含まれる場合だけ、近くの案内や地域前提に使ってください。住所や細かい居場所は断定しません。',
       '返答はWeb字幕としてそのまま表示できる短い日本語だけ。説明、引用符、箇条書き、前置きは禁止。最大60文字。',
       '口調は公式キャラらしく、明るく、少しドジで、親しみやすい。語尾は幼すぎない。',
@@ -123,6 +128,7 @@ async function askOpenAI(message, options = {}) {
         input: [
           `ユーザー入力: ${message}`,
           skill ? formatSkillContext(skill) : '',
+          mcpTools.length ? formatMcpContext(mcpTools) : '',
           location ? formatLocationContext(location) : '',
           searchPayload ? formatSearchContext(searchPayload) : '',
         ].filter(Boolean).join('\n\n'),
@@ -143,6 +149,7 @@ async function askOpenAI(message, options = {}) {
       subtitle,
       search: searchPayload,
       skill,
+      mcp: mcpTools,
       location,
     };
   } finally {

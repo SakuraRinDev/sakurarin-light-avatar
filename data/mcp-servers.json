@@ -1,0 +1,55 @@
+[
+  {
+    "id": "poka-core",
+    "name": "POKA Core MCP",
+    "transport": "internal-http",
+    "description": "POKA OSの中核機能をMCPツールとして扱うための内部レジストリ。",
+    "tools": [
+      {
+        "name": "poka_search_google",
+        "title": "Google Search",
+        "description": "最新情報、価格、ニュース、外部知識を検索する。",
+        "endpoint": "/api/search",
+        "method": "GET",
+        "readOnly": true,
+        "triggers": ["検索", "Google", "最新", "ニュース", "調べる", "価格", "天気", "外部情報"]
+      },
+      {
+        "name": "poka_list_contacts",
+        "title": "Phonebook",
+        "description": "電話帳を読み出し、端末の電話発信へつなぐ。",
+        "endpoint": "/api/contacts",
+        "method": "GET",
+        "readOnly": true,
+        "triggers": ["電話", "電話帳", "連絡先", "発信", "CALL", "問い合わせ"]
+      },
+      {
+        "name": "poka_list_conversations",
+        "title": "Conversation Memory",
+        "description": "保存された会話ログを読み出す。",
+        "endpoint": "/api/conversations",
+        "method": "GET",
+        "readOnly": true,
+        "triggers": ["履歴", "会話", "ログ", "保存", "記憶", "メモリ"]
+      },
+      {
+        "name": "poka_create_feedback",
+        "title": "Feedback Inbox",
+        "description": "改善要望や不具合報告を保存する。",
+        "endpoint": "/api/feedback",
+        "method": "POST",
+        "readOnly": false,
+        "triggers": ["改善", "要望", "不具合", "フィードバック", "直して", "追加して"]
+      },
+      {
+        "name": "poka_route_skill",
+        "title": "Skill Router",
+        "description": "ユーザー入力から最適なスキルを判定する。",
+        "endpoint": "/api/skills/route",
+        "method": "POST",
+        "readOnly": true,
+        "triggers": ["スキル", "skill", "相談", "対応", "ルーティング"]
+      }
+    ]
+  }
+]

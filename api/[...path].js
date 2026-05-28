@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('../google-search');
+const { createMcpManifest, listMcpTools, loadMcpServers, matchMcpTools } = require('../mcp-registry');
 const { normalizeContacts } = require('../phonebook');
 const { sanitizeLocation } = require('../location-context');
 const {
@@ -17,6 +18,7 @@ const {
   storageProvider: feedbackStorageProvider,
 } = require('../feedback-store');
 const { routeSkill } = require('../skill-router');
+const { loadSkills } = require('../skill-router');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -60,6 +62,8 @@ module.exports = async function handler(req, res) {
       persistenceProvider: storageProvider(),
       feedback: true,
       location: true,
+      skills: true,
+      mcp: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return;
@@ -98,6 +102,34 @@ module.exports = async function handler(req, res) {
       validator: 'libphonenumber-js',
       contacts: normalizeContacts(readJson('contacts.json')),
     });
+    return;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && (route === '/skills' || route === '/skills/route')) {
+    const message = req.method === 'GET' ? req.query?.q : req.body?.message;
+    res.status(200).json({
+      ok: true,
+      count: loadSkills().length,
+      skills: loadSkills(),
+      route: message ? routeSkill(message) : null,
+    });
+    return;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && (route === '/mcp' || route === '/mcp/route')) {
+    const message = req.method === 'GET' ? req.query?.q : req.body?.message;
+    res.status(200).json({
+      ok: true,
+      protocol: 'mcp-compatible-registry',
+      servers: loadMcpServers(),
+      tools: listMcpTools(),
+      matches: message ? matchMcpTools(message) : [],
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/mcp/manifest') {
+    res.status(200).json({ ok: true, manifest: createMcpManifest() });
     return;
   }
 
@@ -160,6 +192,7 @@ module.exports = async function handler(req, res) {
     let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
     let search = null;
     let skill = routeSkill(message);
+    let mcp = matchMcpTools(message);
     const location = sanitizeLocation(req.body && req.body.location);
     try {
       const reply = await askOpenAI(message, { cwd: rootDir, location });
@@ -168,6 +201,7 @@ module.exports = async function handler(req, res) {
       model = reply.model;
       search = reply.search || null;
       skill = reply.skill || skill;
+      mcp = reply.mcp || mcp;
     } catch (error) {
       provider = 'scripted-fallback';
     }
@@ -194,6 +228,7 @@ module.exports = async function handler(req, res) {
       },
       search,
       skill,
+      mcp,
       location,
     };
     const event = createConversationEvent({
@@ -205,6 +240,7 @@ module.exports = async function handler(req, res) {
       status: responsePayload.reply.status,
       search,
       skill,
+      mcp,
       location,
     });
     try {

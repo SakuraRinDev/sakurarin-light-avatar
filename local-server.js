@@ -4,6 +4,7 @@ const path = require('path');
 const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
 const { cleanQueryPart, searchGoogle } = require('./google-search');
+const { createMcpManifest, listMcpTools, loadMcpServers, matchMcpTools } = require('./mcp-registry');
 const { normalizeContacts } = require('./phonebook');
 const { sanitizeLocation } = require('./location-context');
 const {
@@ -19,6 +20,7 @@ const {
   storageProvider: feedbackStorageProvider,
 } = require('./feedback-store');
 const { routeSkill } = require('./skill-router');
+const { loadSkills } = require('./skill-router');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -127,6 +129,8 @@ async function handleApi(req, res, pathname) {
       persistenceProvider: storageProvider(),
       feedback: true,
       location: true,
+      skills: true,
+      mcp: true,
       model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || DEFAULT_MODEL) : null,
     });
     return true;
@@ -173,6 +177,48 @@ async function handleApi(req, res, pathname) {
       validator: 'libphonenumber-js',
       contacts,
     });
+    return true;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && (pathname === '/api/skills' || pathname === '/api/skills/route')) {
+    let message = '';
+    if (req.method === 'GET') {
+      message = new URL(req.url, `http://${req.headers.host}`).searchParams.get('q') || '';
+    } else {
+      const body = await readBody(req);
+      const parsed = JSON.parse(body || '{}');
+      message = parsed.message || '';
+    }
+    sendJson(res, 200, {
+      ok: true,
+      count: loadSkills().length,
+      skills: loadSkills(),
+      route: message ? routeSkill(message) : null,
+    });
+    return true;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && (pathname === '/api/mcp' || pathname === '/api/mcp/route')) {
+    let message = '';
+    if (req.method === 'GET') {
+      message = new URL(req.url, `http://${req.headers.host}`).searchParams.get('q') || '';
+    } else {
+      const body = await readBody(req);
+      const parsed = JSON.parse(body || '{}');
+      message = parsed.message || '';
+    }
+    sendJson(res, 200, {
+      ok: true,
+      protocol: 'mcp-compatible-registry',
+      servers: loadMcpServers(),
+      tools: listMcpTools(),
+      matches: message ? matchMcpTools(message) : [],
+    });
+    return true;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/mcp/manifest') {
+    sendJson(res, 200, { ok: true, manifest: createMcpManifest() });
     return true;
   }
 
@@ -252,6 +298,7 @@ async function handleApi(req, res, pathname) {
       let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
       let search = null;
       let skill = routeSkill(message);
+      let mcp = matchMcpTools(message);
       const location = sanitizeLocation(parsed.location);
       try {
         const reply = await askOpenAI(message, { cwd: rootDir, location });
@@ -260,6 +307,7 @@ async function handleApi(req, res, pathname) {
         model = reply.model;
         search = reply.search || null;
         skill = reply.skill || skill;
+        mcp = reply.mcp || mcp;
       } catch (error) {
         provider = 'codex-app-server';
         try {
@@ -291,6 +339,7 @@ async function handleApi(req, res, pathname) {
         },
         search,
         skill,
+        mcp,
         location,
       };
       const event = createConversationEvent({
@@ -302,6 +351,7 @@ async function handleApi(req, res, pathname) {
         status: responsePayload.reply.status,
         search,
         skill,
+        mcp,
         location,
       });
       try {

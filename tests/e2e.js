@@ -23,6 +23,8 @@ async function testApi() {
   assert.equal(health.subtitles, true);
   assert.equal(health.phonebook, true);
   assert.equal(health.location, true);
+  assert.equal(health.skills, true);
+  assert.equal(health.mcp, true);
   assert.ok(['local-jsonl', 'vercel-kv-rest'].includes(health.persistenceProvider));
 
   const contacts = await json('/api/contacts');
@@ -30,6 +32,20 @@ async function testApi() {
   assert.ok(contacts.contacts.length >= 4);
   assert.match(contacts.contacts[0].telHref, /^tel:\+/);
   assert.equal(contacts.validator, 'libphonenumber-js');
+
+  const skills = await json('/api/skills?q=このUIの改善を相談したい');
+  assert.equal(skills.ok, true);
+  assert.ok(skills.skills.length >= 6);
+  assert.equal(skills.route?.id, 'frontend-design');
+
+  const mcp = await json('/api/mcp?q=Googleで最新ニュースを検索して');
+  assert.equal(mcp.ok, true);
+  assert.ok(mcp.tools.some((tool) => tool.name === 'poka_search_google'));
+  assert.equal(mcp.matches[0]?.name, 'poka_search_google');
+
+  const mcpManifest = await json('/api/mcp/manifest');
+  assert.equal(mcpManifest.ok, true);
+  assert.ok(mcpManifest.manifest.tools.some((tool) => tool.name === 'poka_route_skill'));
 
   const sessionId = `test_${Date.now()}`;
   const dialogue = await json('/api/dialogue', {
@@ -84,6 +100,7 @@ async function testApi() {
   });
   assert.equal(skillDialogue.ok, true);
   assert.equal(skillDialogue.skill?.id, 'frontend-design');
+  assert.equal(skillDialogue.mcp?.[0]?.name, 'poka_create_feedback');
 
   const locationDialogue = await json('/api/dialogue', {
     method: 'POST',
@@ -139,6 +156,22 @@ async function testBrowser() {
     assert.equal(phonebook.noHorizontalScroll, true);
 
     await page.click('#phonebook-close');
+    await page.click('#tools-toggle');
+    await page.waitForSelector('.tools-panel.is-open .tool-card');
+    const toolsPanel = await page.evaluate(() => ({
+      open: document.querySelector('#tools-panel')?.classList.contains('is-open'),
+      expanded: document.querySelector('#tools-toggle')?.getAttribute('aria-expanded'),
+      skillCards: document.querySelectorAll('#skills-list .tool-card').length,
+      mcpCards: document.querySelectorAll('#mcp-list .tool-card').length,
+      noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
+    }));
+    assert.equal(toolsPanel.open, true);
+    assert.equal(toolsPanel.expanded, 'true');
+    assert.ok(toolsPanel.skillCards >= 6);
+    assert.ok(toolsPanel.mcpCards >= 5);
+    assert.equal(toolsPanel.noHorizontalScroll, true);
+    await page.click('#tools-close');
+
     await page.click('#location-toggle');
     await page.waitForFunction(() => document.querySelector('#location-toggle')?.classList.contains('is-on'), null, {
       timeout: 10000,
@@ -160,12 +193,14 @@ async function testBrowser() {
       source: document.querySelector('#subtitle-source')?.textContent,
       subtitle: document.querySelector('#subtitle-text')?.textContent,
       skill: document.querySelector('#skill-label')?.textContent,
+      mcp: document.querySelector('#mcp-label')?.textContent,
       locationOn: document.querySelector('#location-toggle')?.classList.contains('is-on'),
       noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
     }));
     assert.equal(chat.source, 'api');
     assert.ok(chat.subtitle);
     assert.match(chat.skill, /frontend-design/);
+    assert.match(chat.mcp, /poka_create_feedback/);
     assert.equal(chat.locationOn, true);
     assert.equal(chat.noHorizontalScroll, true);
     assert.equal(dialogueBodies.at(-1)?.location, null);
