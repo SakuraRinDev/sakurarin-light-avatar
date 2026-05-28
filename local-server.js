@@ -199,6 +199,10 @@ async function handleApi(req, res, pathname) {
   }
 
   if ((req.method === 'GET' || req.method === 'POST') && (pathname === '/api/mcp' || pathname === '/api/mcp/route')) {
+    if (req.method === 'GET' && new URL(req.url, `http://${req.headers.host}`).searchParams.get('manifest') === '1') {
+      sendJson(res, 200, { ok: true, manifest: createMcpManifest() });
+      return true;
+    }
     let message = '';
     if (req.method === 'GET') {
       message = new URL(req.url, `http://${req.headers.host}`).searchParams.get('q') || '';

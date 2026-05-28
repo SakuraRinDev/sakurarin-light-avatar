@@ -43,7 +43,7 @@ async function testApi() {
   assert.ok(mcp.tools.some((tool) => tool.name === 'poka_search_google'));
   assert.equal(mcp.matches[0]?.name, 'poka_search_google');
 
-  const mcpManifest = await json('/api/mcp/manifest');
+  const mcpManifest = await json('/api/mcp?manifest=1');
   assert.equal(mcpManifest.ok, true);
   assert.ok(mcpManifest.manifest.tools.some((tool) => tool.name === 'poka_route_skill'));
 
