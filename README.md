@@ -2,6 +2,8 @@
 
 Bright web prototype for a clumsy, cute, non-human light avatar.
 
+Project purpose: [PROJECT_PURPOSE.md](PROJECT_PURPOSE.md)
+
 - Audio: Suno BGM with browser ON/OFF, plus WebAudio-generated SE
 - Subtitles: enabled
 - Browser model key: none
