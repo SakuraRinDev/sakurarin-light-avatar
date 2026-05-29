@@ -43,6 +43,40 @@ function cleanSubtitle(text) {
     .slice(0, 60);
 }
 
+function appSkillReply(skill, message, location) {
+  if (skill?.id === 'phonebook-flow') {
+    return {
+      subtitle: '左下の電話ボタンから連絡先を開けるよ。発信は端末に任せるね。',
+      reason: 'app_skill_override',
+    };
+  }
+  if (skill?.id === 'location-context' && location && /近く|周辺|現在地|ここから|何できる|なにできる/.test(message)) {
+    return {
+      subtitle: '現在地はざっくり受け取ったよ。近く前提で案内するね。',
+      reason: 'location_context_override',
+    };
+  }
+  if (skill?.id === 'frontend-design') {
+    return {
+      subtitle: '主操作を絞って、ボタンと文字の崩れから直すね。',
+      reason: 'frontend_design_override',
+    };
+  }
+  if (skill?.id === 'feedback-routing') {
+    return {
+      subtitle: '改善要望として保存するね。あとで一覧から追えるよ。',
+      reason: 'feedback_routing_override',
+    };
+  }
+  if (skill?.id === 'persistence') {
+    return {
+      subtitle: '履歴は保存対象だよ。あとで読める形に残していくね。',
+      reason: 'persistence_override',
+    };
+  }
+  return null;
+}
+
 async function askOpenAI(message, options = {}) {
   loadLocalEnv(options.cwd);
   const skill = routeSkill(message);
@@ -50,36 +84,17 @@ async function askOpenAI(message, options = {}) {
   const location = sanitizeLocation(options.location);
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (skill?.id === 'phonebook-flow') {
+  const deterministicReply = appSkillReply(skill, message, location);
+  if (deterministicReply) {
     return {
       provider: 'app-skill',
       model: options.model || DEFAULT_MODEL,
-      subtitle: '左下の電話ボタンから連絡先を開けるよ。発信は端末に任せるね。',
+      subtitle: deterministicReply.subtitle,
       search: null,
       searchDecision: {
         needsSearch: false,
         query: '',
-        reason: 'app_skill_override',
-        confidence: 1,
-        source: 'app-skill',
-        evaluatedReply: false,
-      },
-      skill,
-      mcp: mcpTools,
-      location,
-    };
-  }
-
-  if (skill?.id === 'location-context' && location && /近く|周辺|現在地|ここから|何できる|なにできる/.test(message)) {
-    return {
-      provider: 'app-skill',
-      model: options.model || DEFAULT_MODEL,
-      subtitle: '現在地はざっくり受け取ったよ。近く前提で案内するね。',
-      search: null,
-      searchDecision: {
-        needsSearch: false,
-        query: '',
-        reason: 'location_context_override',
+        reason: deterministicReply.reason,
         confidence: 1,
         source: 'app-skill',
         evaluatedReply: false,

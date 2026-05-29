@@ -110,8 +110,11 @@ async function testApi() {
     body: JSON.stringify({ sessionId: `${sessionId}_skill`, message: 'このUIの改善を相談したい' }),
   });
   assert.equal(skillDialogue.ok, true);
+  assert.equal(skillDialogue.provider, 'app-skill');
   assert.equal(skillDialogue.skill?.id, 'frontend-design');
   assert.equal(skillDialogue.mcp?.[0]?.name, 'poka_create_feedback');
+  assert.equal(Boolean(skillDialogue.search), false);
+  assert.match(skillDialogue.reply?.subtitle, /主操作|ボタン|文字/);
 
   const phoneDialogue = await json('/api/dialogue', {
     method: 'POST',
@@ -131,7 +134,9 @@ async function testApi() {
     }),
   });
   assert.equal(locationDialogue.ok, true);
+  assert.equal(locationDialogue.provider, 'app-skill');
   assert.equal(locationDialogue.skill?.id, 'location-context');
+  assert.equal(Boolean(locationDialogue.search), false);
   assert.deepEqual(locationDialogue.location, { latitude: 35.681, longitude: 139.767, accuracy: 12 });
 
   const searchDebug = await json('/api/search-debug?limit=20');
@@ -213,6 +218,9 @@ async function testBrowser() {
     });
     await page.waitForFunction(() => document.querySelector('#skill-label')?.textContent.includes('frontend-design'), null, {
       timeout: 35000,
+    });
+    await page.waitForFunction(() => Boolean(document.querySelector('#subtitle-text')?.textContent.trim()), null, {
+      timeout: 5000,
     });
     const chat = await page.evaluate(() => ({
       source: document.querySelector('#subtitle-source')?.textContent,

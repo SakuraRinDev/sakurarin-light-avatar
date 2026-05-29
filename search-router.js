@@ -18,6 +18,19 @@ function heuristicSearchDecision(message) {
   }
 
   if (
+    /(?:UI|デザイン|画面|ボタン|機能|改善|要望|フィードバック|直して|追加して|実装して|保存|履歴|電話帳|連絡先|現在地|位置情報|SakuraRin|ポカ)/i.test(text) &&
+    !/(?:OpenAI|Google|ニュース|天気|価格|料金|株価|CEO|社長|法律|規約|発売|日程|予定|202[0-9]年|令和)/i.test(text)
+  ) {
+    return {
+      needsSearch: false,
+      query: '',
+      reason: 'internal_or_app_workflow',
+      confidence: 0.86,
+      source: 'heuristic',
+    };
+  }
+
+  if (
     /(?:今日|明日|昨日|最新|新しい|ニュース|天気|価格|料金|株価|日程|予定|法律|規約|CEO|社長|発売|今|現在|202[0-9]年|令和)/.test(timeSensitiveText)
   ) {
     return {
