@@ -193,10 +193,10 @@ async function testBrowser() {
     await page.fill('#compose-input', 'このUIの改善を相談したい');
     await page.click('#compose-send');
     await page.waitForFunction(() => document.querySelector('#subtitle-source')?.textContent === 'api', null, {
-      timeout: 12000,
+      timeout: 20000,
     });
     await page.waitForFunction(() => document.querySelector('#skill-label')?.textContent.includes('frontend-design'), null, {
-      timeout: 12000,
+      timeout: 20000,
     });
     const chat = await page.evaluate(() => ({
       source: document.querySelector('#subtitle-source')?.textContent,
@@ -221,7 +221,7 @@ async function testBrowser() {
     await page.fill('#compose-input', '現在地の近くで何できる？');
     await page.click('#compose-send');
     await page.waitForFunction(() => document.querySelector('#skill-label')?.textContent.includes('location-context'), null, {
-      timeout: 12000,
+      timeout: 20000,
     });
     assert.equal(dialogueBodies.at(-1)?.location?.latitude, 35.681);
     assert.equal(dialogueBodies.at(-1)?.location?.longitude, 139.767);

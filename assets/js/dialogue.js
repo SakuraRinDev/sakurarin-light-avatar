@@ -15,7 +15,7 @@
 
   async function ask(message, sessionId = "", context = {}) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch("/api/dialogue", {
         method: "POST",
