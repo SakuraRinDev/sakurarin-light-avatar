@@ -5,6 +5,7 @@ globalThis.AI_SDK_LOG_WARNINGS = false;
 
 function heuristicSearchDecision(message) {
   const text = String(message || '').trim();
+  const timeSensitiveText = text.replace(/現在地/g, '');
   const explicitQuery = extractSearchQuery(text);
   if (explicitQuery) {
     return {
@@ -17,7 +18,7 @@ function heuristicSearchDecision(message) {
   }
 
   if (
-    /(?:今日|明日|昨日|最新|新しい|ニュース|天気|価格|料金|株価|日程|予定|法律|規約|CEO|社長|発売|今|現在|202[0-9]年|令和)/.test(text)
+    /(?:今日|明日|昨日|最新|新しい|ニュース|天気|価格|料金|株価|日程|予定|法律|規約|CEO|社長|発売|今|現在|202[0-9]年|令和)/.test(timeSensitiveText)
   ) {
     return {
       needsSearch: true,
