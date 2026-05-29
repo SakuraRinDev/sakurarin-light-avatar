@@ -67,6 +67,8 @@ async function askOpenAI(message, options = {}) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
+  let searchPayload = null;
+
   if (/おすすめ|オススメ|何すれば|なにすれば/.test(message)) {
     return {
       model: options.model || DEFAULT_MODEL,
