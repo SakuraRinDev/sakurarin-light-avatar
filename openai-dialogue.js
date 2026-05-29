@@ -88,6 +88,7 @@ async function askOpenAI(message, options = {}) {
   const skill = routeSkill(message);
   const mcpTools = matchMcpTools(message);
   const location = sanitizeLocation(options.location);
+  const character = options.character === 'moko' ? 'moko' : 'poka';
 
   const apiKey = process.env.OPENAI_API_KEY;
   const deterministicReply = appSkillReply(skill, message, location);
@@ -108,6 +109,7 @@ async function askOpenAI(message, options = {}) {
       skill,
       mcp: mcpTools,
       location,
+      character,
     };
   }
 
@@ -124,6 +126,7 @@ async function askOpenAI(message, options = {}) {
         skill,
         mcp: mcpTools,
         location,
+        character,
       };
     }
     throw new Error('OPENAI_API_KEY is not configured');
@@ -147,6 +150,7 @@ async function askOpenAI(message, options = {}) {
       skill,
       mcp: mcpTools,
       location,
+      character,
     };
   }
 
@@ -169,6 +173,13 @@ async function askOpenAI(message, options = {}) {
       '返答はWeb字幕としてそのまま表示できる短い日本語だけ。説明、引用符、箇条書き、前置きは禁止。最大60文字。',
       '口調は公式キャラらしく、明るく、少しドジで、親しみやすい。語尾は幼すぎない。',
     ];
+    if (character === 'moko') {
+      baseInstructions.unshift(
+        '今回の表示キャラは「MOKO」です。3歳児くらいのよちよちした赤ちゃん風マスコットとして返してください。',
+        '幼いが、読みやすい短文にします。「あう」「えへへ」は少しだけ使ってよいですが、意味が壊れるほど幼児語にしません。',
+        'MOKOはGIFっぽくぱたぱた動くキャラです。光の塊ポカとは別キャラです。',
+      );
+    }
     if (searchPayload) {
       baseInstructions.push(
         '今回はGoogle検索つきの返答です。検索結果の範囲だけを根拠に、外部ニュースや一般情報にも答えてください。',
@@ -220,6 +231,7 @@ async function askOpenAI(message, options = {}) {
         skill,
         mcp: mcpTools,
         location,
+        character,
       };
     }
 
@@ -231,6 +243,7 @@ async function askOpenAI(message, options = {}) {
       skill,
       mcp: mcpTools,
       location,
+      character,
     };
   } finally {
     clearTimeout(timeout);

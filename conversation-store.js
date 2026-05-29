@@ -19,6 +19,7 @@ function createConversationEvent(input) {
     id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     createdAt: now,
     sessionId: safeText(input.sessionId, `sess_${Date.now()}`, 80),
+    character: safeText(input.character, 'poka', 40),
     userMessage: safeText(input.userMessage, '', 1000),
     assistantMessage: safeText(input.assistantMessage, '', 1000),
     provider: safeText(input.provider, 'unknown', 80),

@@ -20,7 +20,12 @@
       const res = await fetch("/api/dialogue", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ message, sessionId, location: context.location || null }),
+        body: JSON.stringify({
+          message,
+          sessionId,
+          location: context.location || null,
+          character: context.character || "poka",
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeout);

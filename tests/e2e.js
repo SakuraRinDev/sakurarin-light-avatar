@@ -125,6 +125,15 @@ async function testApi() {
   assert.equal(phoneDialogue.skill?.id, 'phonebook-flow');
   assert.match(phoneDialogue.reply?.subtitle, /電話ボタン|連絡先/);
 
+  const babyDialogue = await json('/api/dialogue', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId: `${sessionId}_moko`, message: '新機能をつけて', character: 'moko', debug: true }),
+  });
+  assert.equal(babyDialogue.ok, true);
+  assert.equal(babyDialogue.character, 'moko');
+  assert.equal(babyDialogue.provider, 'app-skill');
+  assert.equal(babyDialogue.debug?.searchRouting?.decision?.reason, 'feature_request_override');
+
   const locationDialogue = await json('/api/dialogue', {
     method: 'POST',
     body: JSON.stringify({
@@ -161,6 +170,40 @@ async function testBrowser() {
     page.on('pageerror', (error) => errors.push(error.message));
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
+    const initialCharacter = await page.evaluate(() => ({
+      isPoka: document.body.classList.contains('character-poka'),
+      isMoko: document.body.classList.contains('character-moko'),
+      active: document.querySelector('.character-switch__button.is-active')?.dataset.character,
+      babyVisible: getComputedStyle(document.querySelector('.baby-gif')).opacity,
+    }));
+    assert.equal(initialCharacter.isPoka, true);
+    assert.equal(initialCharacter.isMoko, false);
+    assert.equal(initialCharacter.active, 'poka');
+    assert.equal(initialCharacter.babyVisible, '0');
+
+    await page.click('[data-character="moko"]');
+    await page.waitForFunction(() => document.body.classList.contains('character-moko'), null, {
+      timeout: 5000,
+    });
+    await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('.baby-gif')).opacity) > 0.5, null, {
+      timeout: 5000,
+    });
+    const babyCharacter = await page.evaluate(() => ({
+      active: document.querySelector('.character-switch__button.is-active')?.dataset.character,
+      name: document.querySelector('.topbar__name')?.textContent,
+      babyVisible: Number(getComputedStyle(document.querySelector('.baby-gif')).opacity),
+      placeholder: document.querySelector('#compose-input')?.getAttribute('placeholder'),
+    }));
+    assert.equal(babyCharacter.active, 'moko');
+    assert.equal(babyCharacter.name, 'MOKO');
+    assert.ok(babyCharacter.babyVisible > 0.5);
+    assert.match(babyCharacter.placeholder, /モコ/);
+
+    await page.click('[data-character="poka"]');
+    await page.waitForFunction(() => document.body.classList.contains('character-poka'), null, {
+      timeout: 5000,
+    });
+
     await page.click('#feedback-toggle');
     await page.waitForSelector('.feedback-panel.is-open');
     await page.selectOption('#feedback-category', 'idea');
@@ -202,6 +245,11 @@ async function testBrowser() {
     assert.equal(toolsPanel.noHorizontalScroll, true);
     await page.click('#tools-close');
 
+    await page.click('[data-character="moko"]');
+    await page.waitForFunction(() => document.body.classList.contains('character-moko'), null, {
+      timeout: 5000,
+    });
+
     await page.click('#location-toggle');
     await page.waitForFunction(() => document.querySelector('#location-toggle')?.classList.contains('is-on'), null, {
       timeout: 10000,
@@ -241,6 +289,7 @@ async function testBrowser() {
     assert.equal(chat.locationPressed, 'true');
     assert.equal(chat.noHorizontalScroll, true);
     assert.equal(dialogueBodies.at(-1)?.location, null);
+    assert.equal(dialogueBodies.at(-1)?.character, 'moko');
 
     await page.fill('#compose-input', '現在地の近くで何できる？');
     await page.click('#compose-send');

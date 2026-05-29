@@ -24,6 +24,8 @@
   const sendBtn = document.getElementById("compose-send");
   const soundToggle = document.getElementById("sound-toggle");
   const locationToggle = document.getElementById("location-toggle");
+  const characterButtons = Array.from(document.querySelectorAll("[data-character]"));
+  const characterNameEl = document.querySelector(".topbar__name");
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
   const sfx = audio?.sfx || {};
@@ -34,6 +36,55 @@
   if (soundToggle) {
     audio?.init();
   }
+
+  const characters = {
+    poka: {
+      label: "POKA",
+      statusIdle: "出番待ち",
+      statusSpeak: "おしゃべり中",
+      thinking: "（ふむふむ、聞いてる…）",
+      placeholder: "ポカ、今日のおすすめは？",
+    },
+    moko: {
+      label: "MOKO",
+      statusIdle: "よちよち待機",
+      statusSpeak: "ぱたぱた中",
+      thinking: "（あう、きいてる…）",
+      placeholder: "モコ、なにできる？",
+    },
+  };
+
+  function getInitialCharacter() {
+    const saved = window.localStorage?.getItem("poka-character");
+    return characters[saved] ? saved : "poka";
+  }
+
+  let currentCharacter = getInitialCharacter();
+
+  function applyCharacter(id) {
+    currentCharacter = characters[id] ? id : "poka";
+    const character = characters[currentCharacter];
+    document.body.classList.toggle("character-poka", currentCharacter === "poka");
+    document.body.classList.toggle("character-moko", currentCharacter === "moko");
+    characterButtons.forEach((button) => {
+      const active = button.dataset.character === currentCharacter;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    if (characterNameEl) characterNameEl.textContent = character.label;
+    if (input) input.placeholder = character.placeholder;
+    setStatus(character.statusIdle);
+    window.localStorage?.setItem("poka-character", currentCharacter);
+  }
+
+  characterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      applyCharacter(button.dataset.character);
+      sfx.tap?.();
+      triggerClumsy();
+    });
+  });
+  applyCharacter(currentCharacter);
 
   /* ----------------------- canvas sizing ----------------------- */
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -61,14 +112,14 @@
     drive.target = 0.78;
     drive.speakingUntil = performance.now() + ms;
     sceneEl?.classList.add("is-speaking");
-    setStatus("おしゃべり中");
+    setStatus(characters[currentCharacter]?.statusSpeak || "おしゃべり中");
   }
 
   function setIdle() {
     drive.speaking = false;
     drive.target = 0.18;
     sceneEl?.classList.remove("is-speaking");
-    setStatus("出番待ち");
+    setStatus(characters[currentCharacter]?.statusIdle || "出番待ち");
   }
 
   function triggerClumsy() {
@@ -395,11 +446,12 @@
     setStatus("聞いてる…");
     drive.target = 0.34;
 
-    setSubtitle("（ふむふむ、聞いてる…）", "thinking");
+    setSubtitle(characters[currentCharacter]?.thinking || "（ふむふむ、聞いてる…）", "thinking");
 
     const location = await getLocationForMessage(message);
     const { reply, source, status, motion, skill, mcp } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
       location,
+      character: currentCharacter,
     });
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();

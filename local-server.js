@@ -76,6 +76,10 @@ function safeText(value, fallback = '') {
   return String(value || fallback).trim().slice(0, 240);
 }
 
+function safeCharacter(value) {
+  return value === 'moko' ? 'moko' : 'poka';
+}
+
 function pickReply(message, scenes) {
   const text = message.toLowerCase();
   if (text.includes('かわいい') || text.includes('いいね')) return scenes.find((scene) => scene.id === 'spark');
@@ -339,6 +343,7 @@ async function handleApi(req, res, pathname) {
       const body = await readBody(req);
       const parsed = JSON.parse(body || '{}');
       const message = safeText(parsed.message, 'こんにちは');
+      const character = safeCharacter(parsed.character);
       const scene = sceneForCodexReply(message, scenes);
       let subtitle = '';
       let provider = 'openai-api';
@@ -350,7 +355,7 @@ async function handleApi(req, res, pathname) {
       let mcp = matchMcpTools(message);
       const location = sanitizeLocation(parsed.location);
       try {
-        const reply = await askOpenAI(message, { cwd: rootDir, location });
+        const reply = await askOpenAI(message, { cwd: rootDir, location, character });
         subtitle = reply.subtitle;
         provider = reply.provider || provider;
         model = reply.model;
@@ -403,6 +408,7 @@ async function handleApi(req, res, pathname) {
         provider,
         model: provider === 'openai-api' ? model : null,
         sessionId: safeText(parsed.sessionId, `sess_${Date.now()}`),
+        character,
         reply: {
           ...scene,
           status:
@@ -423,6 +429,7 @@ async function handleApi(req, res, pathname) {
         sessionId: responsePayload.sessionId,
         userMessage: message,
         assistantMessage: subtitle,
+        character,
         provider,
         model: responsePayload.model,
         status: responsePayload.reply.status,

@@ -32,6 +32,10 @@ function safeText(value, fallback = '') {
   return String(value || fallback).trim().slice(0, 240);
 }
 
+function safeCharacter(value) {
+  return value === 'moko' ? 'moko' : 'poka';
+}
+
 function pickReply(message, scenes) {
   const text = message.toLowerCase();
   if (text.includes('かわいい') || text.includes('いいね')) return scenes.find((scene) => scene.id === 'spark');
@@ -63,6 +67,7 @@ function createSearchDebug({ message, provider, search, searchDecision, skill, e
 async function sendDialogue(req, res) {
   const scenes = readJson('scenes.json');
   const message = safeText(req.body && req.body.message, 'こんにちは');
+  const character = safeCharacter(req.body && req.body.character);
   const scene = pickReply(message, scenes) || scenes[0];
   let subtitle = '';
   let provider = 'openai-api';
@@ -74,7 +79,7 @@ async function sendDialogue(req, res) {
   let mcp = matchMcpTools(message);
   const location = sanitizeLocation(req.body && req.body.location);
   try {
-    const reply = await askOpenAI(message, { cwd: rootDir, location });
+    const reply = await askOpenAI(message, { cwd: rootDir, location, character });
     subtitle = reply.subtitle;
     provider = reply.provider || provider;
     model = reply.model;
@@ -120,6 +125,7 @@ async function sendDialogue(req, res) {
     provider,
     model: provider === 'openai-api' ? model : null,
     sessionId: safeText(req.body && req.body.sessionId, `sess_${Date.now()}`),
+    character,
     reply: {
       ...scene,
       status:
@@ -141,6 +147,7 @@ async function sendDialogue(req, res) {
     sessionId: responsePayload.sessionId,
     userMessage: message,
     assistantMessage: subtitle,
+    character,
     provider,
     model: responsePayload.model,
     status: responsePayload.reply.status,
