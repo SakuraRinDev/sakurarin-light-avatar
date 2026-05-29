@@ -25,6 +25,7 @@
   const soundToggle = document.getElementById("sound-toggle");
   const locationToggle = document.getElementById("location-toggle");
   const characterButtons = Array.from(document.querySelectorAll("[data-character]"));
+  const babyMotionButtons = Array.from(document.querySelectorAll("[data-baby-motion]"));
   const characterNameEl = document.querySelector(".topbar__name");
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
@@ -59,7 +60,20 @@
     return characters[saved] ? saved : "poka";
   }
 
+  const babyMotions = {
+    bounce: { status: "ぴょこぴょこ中" },
+    wave: { status: "ばいばい中" },
+    tumble: { status: "ころん練習中" },
+    sparkle: { status: "きらきら中" },
+  };
+
+  function getInitialBabyMotion() {
+    const saved = window.localStorage?.getItem("moko-motion");
+    return babyMotions[saved] ? saved : "bounce";
+  }
+
   let currentCharacter = getInitialCharacter();
+  let currentBabyMotion = getInitialBabyMotion();
 
   function applyCharacter(id) {
     currentCharacter = characters[id] ? id : "poka";
@@ -77,6 +91,18 @@
     window.localStorage?.setItem("poka-character", currentCharacter);
   }
 
+  function applyBabyMotion(id) {
+    currentBabyMotion = babyMotions[id] ? id : "bounce";
+    document.body.dataset.babyMotion = currentBabyMotion;
+    babyMotionButtons.forEach((button) => {
+      const active = button.dataset.babyMotion === currentBabyMotion;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    window.localStorage?.setItem("moko-motion", currentBabyMotion);
+    if (currentCharacter === "moko") setStatus(babyMotions[currentBabyMotion].status);
+  }
+
   characterButtons.forEach((button) => {
     button.addEventListener("click", () => {
       applyCharacter(button.dataset.character);
@@ -85,6 +111,16 @@
     });
   });
   applyCharacter(currentCharacter);
+
+  babyMotionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      applyCharacter("moko");
+      applyBabyMotion(button.dataset.babyMotion);
+      sfx.tap?.();
+      triggerClumsy();
+    });
+  });
+  applyBabyMotion(currentBabyMotion);
 
   /* ----------------------- canvas sizing ----------------------- */
   const dpr = Math.min(window.devicePixelRatio || 1, 2);

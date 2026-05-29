@@ -199,6 +199,22 @@ async function testBrowser() {
     assert.ok(babyCharacter.babyVisible > 0.5);
     assert.match(babyCharacter.placeholder, /モコ/);
 
+    const motionNames = ['bounce', 'wave', 'tumble', 'sparkle'];
+    for (const motionName of motionNames) {
+      await page.click(`[data-baby-motion="${motionName}"]`);
+      await page.waitForFunction((motion) => document.body.dataset.babyMotion === motion, motionName, {
+        timeout: 5000,
+      });
+      const motionState = await page.evaluate(() => ({
+        motion: document.body.dataset.babyMotion,
+        active: document.querySelector('.baby-motion-switch__button.is-active')?.dataset.babyMotion,
+        visible: Number(getComputedStyle(document.querySelector('.baby-motion-switch')).opacity),
+      }));
+      assert.equal(motionState.motion, motionName);
+      assert.equal(motionState.active, motionName);
+      assert.ok(motionState.visible > 0.5);
+    }
+
     await page.click('[data-character="poka"]');
     await page.waitForFunction(() => document.body.classList.contains('character-poka'), null, {
       timeout: 5000,
