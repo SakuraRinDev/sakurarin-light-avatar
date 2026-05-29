@@ -27,6 +27,8 @@
   const bgmAudio = document.getElementById("bgm-audio");
   const audio = window.PokaAudio?.createAudioController({ toggle: soundToggle, bgm: bgmAudio });
   const sfx = audio?.sfx || {};
+  const LOCATION_TTL_MS = 5 * 60 * 1000;
+  const locationState = { enabled: false, pending: false };
   window.PokaSessionId = window.PokaSessionId || `sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
   if (soundToggle) {
@@ -84,55 +86,109 @@
     return Math.round(Number(value) * 1000) / 1000;
   }
 
-  function setLocationState(location) {
+  function normalizeCoords(coords) {
+    const latitude = Number(coords?.latitude);
+    const longitude = Number(coords?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    const accuracy = Number(coords?.accuracy);
+    return {
+      latitude: roundCoord(latitude),
+      longitude: roundCoord(longitude),
+      accuracy: Number.isFinite(accuracy) ? Math.max(0, Math.round(accuracy)) : null,
+      capturedAt: new Date().toISOString(),
+    };
+  }
+
+  function isLocationFresh(location) {
+    if (!location?.capturedAt) return false;
+    return Date.now() - new Date(location.capturedAt).getTime() < LOCATION_TTL_MS;
+  }
+
+  function setLocationState(location, enabled = locationState.enabled) {
+    locationState.enabled = Boolean(enabled);
     window.PokaLocation = location || null;
     if (!locationToggle) return;
-    locationToggle.classList.toggle("is-on", Boolean(location));
-    locationToggle.setAttribute("aria-pressed", location ? "true" : "false");
+    locationToggle.classList.toggle("is-on", locationState.enabled);
+    locationToggle.classList.toggle("is-pending", locationState.pending);
+    locationToggle.setAttribute("aria-pressed", locationState.enabled ? "true" : "false");
+    locationToggle.title = locationState.enabled && location ? `LOCATION ${location.latitude}, ${location.longitude}` : "LOCATION";
   }
 
   function shouldSendLocation(message) {
-    if (!window.PokaLocation) return false;
+    if (!locationState.enabled || !window.PokaLocation) return false;
     return /位置情報|現在地|近く|周辺|場所|道案内|ここから|行き方|何分|どこ|店|イベント|会場/.test(message);
   }
 
+  function requestLocation({ silent = false } = {}) {
+    if (!navigator.geolocation) {
+      setLocationState(null, false);
+      if (!silent) {
+        setStatus("位置情報なし");
+        setSubtitle("この端末では現在地が使えないみたい。こてっ。", "fallback");
+        sfx.error?.();
+      }
+      return Promise.resolve(null);
+    }
+
+    locationState.pending = true;
+    locationToggle.disabled = true;
+    setLocationState(window.PokaLocation, true);
+    if (!silent) setStatus("現在地確認中…");
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = normalizeCoords(position.coords);
+          locationState.pending = false;
+          locationToggle.disabled = false;
+          setLocationState(location, Boolean(location));
+          if (!location) {
+            if (!silent) {
+              setStatus("現在地エラー");
+              setSubtitle("現在地の値がうまく読めなかったみたい。", "fallback");
+              sfx.error?.();
+            }
+            resolve(null);
+            return;
+          }
+          if (!silent) {
+            setStatus("現在地オン");
+            sfx.sparkle?.();
+          }
+          resolve(location);
+        },
+        () => {
+          locationState.pending = false;
+          locationToggle.disabled = false;
+          setLocationState(null, false);
+          if (!silent) {
+            setStatus("現在地オフ");
+            setSubtitle("現在地の許可が取れなかったみたい。ポカ、ちょっと迷子です。", "fallback");
+            sfx.error?.();
+          }
+          resolve(null);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: LOCATION_TTL_MS },
+      );
+    });
+  }
+
+  async function getLocationForMessage(message) {
+    if (!shouldSendLocation(message)) return null;
+    if (isLocationFresh(window.PokaLocation)) return window.PokaLocation;
+    return requestLocation({ silent: true });
+  }
+
   locationToggle?.addEventListener("click", () => {
-    if (window.PokaLocation) {
-      setLocationState(null);
+    if (locationState.enabled) {
+      locationState.pending = false;
+      locationToggle.disabled = false;
+      setLocationState(null, false);
       setStatus("現在地オフ");
       sfx.tap?.();
       return;
     }
-    if (!navigator.geolocation) {
-      setStatus("位置情報なし");
-      setSubtitle("この端末では現在地が使えないみたい。こてっ。", "fallback");
-      sfx.error?.();
-      return;
-    }
-    locationToggle.disabled = true;
-    setStatus("現在地確認中…");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = position.coords || {};
-        setLocationState({
-          latitude: roundCoord(coords.latitude),
-          longitude: roundCoord(coords.longitude),
-          accuracy: Math.round(Number(coords.accuracy || 0)),
-          capturedAt: new Date().toISOString(),
-        });
-        locationToggle.disabled = false;
-        setStatus("現在地オン");
-        sfx.sparkle?.();
-      },
-      () => {
-        setLocationState(null);
-        locationToggle.disabled = false;
-        setStatus("現在地オフ");
-        setSubtitle("現在地の許可が取れなかったみたい。ポカ、ちょっと迷子です。", "fallback");
-        sfx.error?.();
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
-    );
+    requestLocation();
   });
 
   /* ----------------------- render loop ----------------------- */
@@ -341,8 +397,9 @@
 
     setSubtitle("（ふむふむ、聞いてる…）", "thinking");
 
+    const location = await getLocationForMessage(message);
     const { reply, source, status, motion, skill, mcp } = await window.PokaDialogue.ask(message, window.PokaSessionId, {
-      location: shouldSendLocation(message) ? window.PokaLocation : null,
+      location,
     });
     if (status) setStatus(status);
     if (motion && motion.includes("slip")) triggerClumsy();

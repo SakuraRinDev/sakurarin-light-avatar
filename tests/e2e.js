@@ -195,6 +195,8 @@ async function testBrowser() {
       skill: document.querySelector('#skill-label')?.textContent,
       mcp: document.querySelector('#mcp-label')?.textContent,
       locationOn: document.querySelector('#location-toggle')?.classList.contains('is-on'),
+      locationPending: document.querySelector('#location-toggle')?.classList.contains('is-pending'),
+      locationPressed: document.querySelector('#location-toggle')?.getAttribute('aria-pressed'),
       noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
     }));
     assert.equal(chat.source, 'api');
@@ -202,6 +204,8 @@ async function testBrowser() {
     assert.match(chat.skill, /frontend-design/);
     assert.match(chat.mcp, /poka_create_feedback/);
     assert.equal(chat.locationOn, true);
+    assert.equal(chat.locationPending, false);
+    assert.equal(chat.locationPressed, 'true');
     assert.equal(chat.noHorizontalScroll, true);
     assert.equal(dialogueBodies.at(-1)?.location, null);
 

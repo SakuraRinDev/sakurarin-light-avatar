@@ -989,6 +989,12 @@ input {
     0 0 36px rgba(255, 198, 221, 0.26);
 }
 
+.dock__location.is-pending {
+  cursor: progress;
+  filter: saturate(0.9) brightness(1.04);
+  animation: locationPulse 0.9s ease-in-out infinite;
+}
+
 .dock__sound-icon {
   height: 30px;
   display: inline-flex;
@@ -1033,6 +1039,11 @@ input {
 @keyframes soundBars {
   0%, 100% { transform: scaleY(0.58); opacity: 0.42; }
   50% { transform: scaleY(1.08); opacity: 0.9; }
+}
+
+@keyframes locationPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
 }
 
 .dock__bar {
