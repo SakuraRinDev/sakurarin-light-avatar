@@ -40,7 +40,7 @@ function cleanSubtitle(text) {
     .replace(/^["'「『\s]+|["'」』\s]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 90);
+    .slice(0, 60);
 }
 
 async function askOpenAI(message, options = {}) {
