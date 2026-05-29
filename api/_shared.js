@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { askOpenAI, DEFAULT_MODEL } = require('../openai-dialogue');
-const { cleanQueryPart, searchGoogle } = require('../google-search');
+const { cleanQueryPart, createSearchSubtitle, searchGoogle } = require('../google-search');
 const { createMcpManifest, listMcpTools, loadMcpServers, matchMcpTools } = require('../mcp-registry');
 const { normalizeContacts } = require('../phonebook');
 const { sanitizeLocation } = require('../location-context');
@@ -19,6 +19,7 @@ const {
 } = require('../feedback-store');
 const { routeSkill } = require('../skill-router');
 const { loadSkills } = require('../skill-router');
+const { decideSearchAfterReply } = require('../search-router');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -62,6 +63,27 @@ async function sendDialogue(req, res) {
     mcp = reply.mcp || mcp;
   } catch (error) {
     provider = 'scripted-fallback';
+    const draftSubtitle =
+      message.length > 0
+        ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
+        : scene.subtitle;
+    const searchDecision = await decideSearchAfterReply(message, draftSubtitle);
+    if (searchDecision.needsSearch) {
+      try {
+        search = await searchGoogle(searchDecision.query, { limit: 4 });
+      } catch (searchError) {
+        search = {
+          provider: 'google-search-ts',
+          query: searchDecision.query,
+          searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchDecision.query)}`,
+          results: [],
+          error: searchError.message || 'Google search failed',
+        };
+      }
+      search.decision = searchDecision;
+      subtitle = createSearchSubtitle(search);
+      provider = 'google-search';
+    }
   }
   if (!subtitle) {
     subtitle =
