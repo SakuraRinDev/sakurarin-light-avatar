@@ -46,6 +46,13 @@ async function main() {
 
   const dialogueCases = [
     {
+      name: 'feature-request',
+      message: '新機能をつけて',
+      provider: 'app-skill',
+      hasSearch: false,
+      reason: 'feature_request_override',
+    },
+    {
       name: 'phonebook',
       message: '電話帳を開きたい',
       provider: 'app-skill',

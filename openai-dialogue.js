@@ -44,6 +44,12 @@ function cleanSubtitle(text) {
 }
 
 function appSkillReply(skill, message, location) {
+  if (!skill && /(?:新機能|機能|実装|追加|つけて|作って|作りたい)/.test(message)) {
+    return {
+      subtitle: 'どの機能から入れるか決めよう。要望として分解するね。',
+      reason: 'feature_request_override',
+    };
+  }
   if (skill?.id === 'phonebook-flow') {
     return {
       subtitle: '左下の電話ボタンから連絡先を開けるよ。発信は端末に任せるね。',
