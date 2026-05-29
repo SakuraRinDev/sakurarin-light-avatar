@@ -3,7 +3,7 @@ const path = require('path');
 const { createSearchSubtitle, formatSearchContext, searchGoogle } = require('./google-search');
 const { formatLocationContext, sanitizeLocation } = require('./location-context');
 const { formatMcpContext, matchMcpTools } = require('./mcp-registry');
-const { decideSearch } = require('./search-router');
+const { decideSearch, decideSearchAfterReply } = require('./search-router');
 const { formatSkillContext, routeSkill } = require('./skill-router');
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
@@ -49,35 +49,23 @@ async function askOpenAI(message, options = {}) {
   const mcpTools = matchMcpTools(message);
   const location = sanitizeLocation(options.location);
 
-  const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
-  const searchQuery = searchDecision.needsSearch ? searchDecision.query : null;
-  let searchPayload = null;
-  if (searchQuery) {
-    try {
-      searchPayload = await searchGoogle(searchQuery, { limit: 4 });
-    } catch (error) {
-      searchPayload = {
-        provider: 'google-search-ts',
-        query: searchQuery,
-        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`,
-        results: [],
-        error: error.message || 'Google search failed',
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
+    if (searchDecision.needsSearch) {
+      const searchPayload = await runSearch(searchDecision);
+      return {
+        provider: 'google-search',
+        model: options.model || DEFAULT_MODEL,
+        subtitle: createSearchSubtitle(searchPayload),
+        search: searchPayload,
+        skill,
+        mcp: mcpTools,
+        location,
       };
     }
-    searchPayload.decision = searchDecision;
-    return {
-      provider: 'google-search',
-      model: options.model || DEFAULT_MODEL,
-      subtitle: createSearchSubtitle(searchPayload),
-      search: searchPayload,
-      skill,
-      mcp: mcpTools,
-      location,
-    };
+    throw new Error('OPENAI_API_KEY is not configured');
   }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
 
   if (/おすすめ|オススメ|何すれば|なにすれば/.test(message)) {
     return {
@@ -144,6 +132,23 @@ async function askOpenAI(message, options = {}) {
     }
     const subtitle = cleanSubtitle(getTextFromResponse(data));
     if (!subtitle) throw new Error('OpenAI response did not include text');
+
+    const searchDecision = await decideSearchAfterReply(message, subtitle, {
+      timeoutMs: options.routerTimeoutMs || 3500,
+    });
+    if (searchDecision.needsSearch) {
+      const searchPayload = await runSearch(searchDecision);
+      return {
+        provider: 'google-search',
+        model: data.model || options.model || DEFAULT_MODEL,
+        subtitle: createSearchSubtitle(searchPayload),
+        search: searchPayload,
+        skill,
+        mcp: mcpTools,
+        location,
+      };
+    }
+
     return {
       model: data.model || options.model || DEFAULT_MODEL,
       subtitle,
@@ -155,6 +160,24 @@ async function askOpenAI(message, options = {}) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function runSearch(searchDecision) {
+  const searchQuery = searchDecision.query;
+  let searchPayload = null;
+  try {
+    searchPayload = await searchGoogle(searchQuery, { limit: 4 });
+  } catch (error) {
+    searchPayload = {
+      provider: 'google-search-ts',
+      query: searchQuery,
+      searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`,
+      results: [],
+      error: error.message || 'Google search failed',
+    };
+  }
+  searchPayload.decision = searchDecision;
+  return searchPayload;
 }
 
 module.exports = {

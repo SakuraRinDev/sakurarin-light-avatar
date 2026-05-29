@@ -1,5 +1,6 @@
 const assert = require('assert/strict');
 const { chromium } = require('playwright');
+const { decideSearchAfterReply } = require('../search-router');
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://127.0.0.1:5182';
 
@@ -18,6 +19,14 @@ async function json(pathname, options = {}) {
 }
 
 async function testApi() {
+  const evaluatedSearch = await decideSearchAfterReply('OpenAIって何が新しいの', 'ポカが案内するね。');
+  assert.equal(evaluatedSearch.needsSearch, true);
+  assert.equal(evaluatedSearch.evaluatedReply, true);
+
+  const evaluatedLocal = await decideSearchAfterReply('このUIの改善を相談したい', 'まずボタンの役割を分けよう。');
+  assert.equal(evaluatedLocal.needsSearch, false);
+  assert.equal(evaluatedLocal.evaluatedReply, true);
+
   const health = await json('/api/health');
   assert.equal(health.ok, true);
   assert.equal(health.subtitles, true);

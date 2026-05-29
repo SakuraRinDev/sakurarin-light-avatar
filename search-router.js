@@ -102,8 +102,84 @@ async function decideSearch(message, options = {}) {
   }
 }
 
+async function decideSearchAfterReply(message, assistantReply, options = {}) {
+  const fallback = heuristicSearchDecision(message);
+  if (fallback.needsSearch || !process.env.OPENAI_API_KEY) {
+    return {
+      ...fallback,
+      evaluatedReply: Boolean(assistantReply),
+      source: fallback.source === 'heuristic' ? 'heuristic-reply-eval' : fallback.source,
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 3500);
+  try {
+    const [{ generateObject }, { openai }, { z }] = await Promise.all([
+      import('ai'),
+      import('@ai-sdk/openai'),
+      import('zod'),
+    ]);
+
+    const schema = z.object({
+      needsSearch: z.boolean(),
+      query: z.string().max(120).describe('Concise Google query. Empty when no search is needed.'),
+      reason: z.enum([
+        'reply_needs_current_fact_check',
+        'reply_mentions_external_fact',
+        'user_requested_current_info',
+        'reply_is_safe_without_search',
+        'internal_or_persona_answer',
+      ]),
+      confidence: z.number().min(0).max(1),
+    });
+
+    const result = await generateObject({
+      model: openai(ROUTER_MODEL),
+      schema,
+      maxOutputTokens: 160,
+      abortSignal: controller.signal,
+      system: [
+        'You evaluate a pair: user message and draft assistant reply.',
+        'Decide whether the draft reply should be replaced by live Google search results.',
+        'Return needsSearch=true if the user asked for latest/current facts, news, weather, prices, schedules, laws, real companies/people, or if the draft makes an external factual claim that could be stale.',
+        'Return needsSearch=false if the draft is only mascot persona, UI guidance, app-internal behavior, user feedback handling, SakuraRin demo context, or stable local information.',
+        'Do not search only because the draft is short or playful.',
+        'If search is needed, write the best concise query from the user message and draft.',
+      ].join('\n'),
+      prompt: [
+        `User message: ${String(message || '').slice(0, 400)}`,
+        `Draft reply: ${String(assistantReply || '').slice(0, 400)}`,
+      ].join('\n'),
+    });
+
+    const object = result.object || {};
+    const query = object.needsSearch ? cleanQueryPart(object.query || fallback.query || message) : '';
+    return {
+      needsSearch: Boolean(object.needsSearch && query),
+      query,
+      reason: object.reason || fallback.reason,
+      confidence: Number.isFinite(object.confidence) ? object.confidence : fallback.confidence,
+      source: 'ai-sdk-reply-eval',
+      evaluatedReply: true,
+      draftReply: String(assistantReply || '').slice(0, 160),
+    };
+  } catch (error) {
+    return {
+      ...fallback,
+      source: 'heuristic-reply-eval-fallback',
+      evaluatedReply: true,
+      draftReply: String(assistantReply || '').slice(0, 160),
+      error: error.message || 'reply search evaluator failed',
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 module.exports = {
   ROUTER_MODEL,
   decideSearch,
+  decideSearchAfterReply,
   heuristicSearchDecision,
 };
