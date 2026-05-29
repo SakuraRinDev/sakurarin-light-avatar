@@ -70,6 +70,26 @@ async function askOpenAI(message, options = {}) {
     };
   }
 
+  if (skill?.id === 'location-context' && location && /近く|周辺|現在地|ここから|何できる|なにできる/.test(message)) {
+    return {
+      provider: 'app-skill',
+      model: options.model || DEFAULT_MODEL,
+      subtitle: '現在地はざっくり受け取ったよ。近く前提で案内するね。',
+      search: null,
+      searchDecision: {
+        needsSearch: false,
+        query: '',
+        reason: 'location_context_override',
+        confidence: 1,
+        source: 'app-skill',
+        evaluatedReply: false,
+      },
+      skill,
+      mcp: mcpTools,
+      location,
+    };
+  }
+
   if (!apiKey) {
     const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
     if (searchDecision.needsSearch) {
