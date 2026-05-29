@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { CodexAppServerBridge } = require('./codex-bridge');
 const { askOpenAI, DEFAULT_MODEL, loadLocalEnv } = require('./openai-dialogue');
-const { cleanQueryPart, searchGoogle } = require('./google-search');
+const { cleanQueryPart, createSearchSubtitle, searchGoogle } = require('./google-search');
 const { createMcpManifest, listMcpTools, loadMcpServers, matchMcpTools } = require('./mcp-registry');
 const { normalizeContacts } = require('./phonebook');
 const { sanitizeLocation } = require('./location-context');
@@ -21,6 +21,7 @@ const {
 } = require('./feedback-store');
 const { routeSkill } = require('./skill-router');
 const { loadSkills } = require('./skill-router');
+const { decideSearchAfterReply } = require('./search-router');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -91,6 +92,20 @@ function sceneForCodexReply(message, scenes) {
     ...scene,
     status: 'Codexから返事中',
     motion: scene.motion || 'wobble-small',
+  };
+}
+
+function createSearchDebug({ message, provider, search, searchDecision, skill, error }) {
+  const decision = searchDecision || search?.decision || null;
+  return {
+    message,
+    draftReply: decision?.draftReply || '',
+    provider,
+    skillId: skill?.id || '',
+    hasSearch: Boolean(search),
+    resultCount: Array.isArray(search?.results) ? search.results.length : 0,
+    decision,
+    error: error?.message || '',
   };
 }
 
@@ -244,6 +259,34 @@ async function handleApi(req, res, pathname) {
     return true;
   }
 
+  if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/search-debug') {
+    try {
+      let limit = 30;
+      if (req.method === 'GET') {
+        limit = new URL(req.url, `http://${req.headers.host}`).searchParams.get('limit') || 30;
+      } else {
+        const body = await readBody(req);
+        const parsed = JSON.parse(body || '{}');
+        limit = parsed.limit || 30;
+      }
+      const events = await listConversationEvents(limit);
+      const debug = events
+        .filter((event) => event.searchDebug || event.search)
+        .map((event) => ({
+          id: event.id,
+          createdAt: event.createdAt,
+          sessionId: event.sessionId,
+          provider: event.provider,
+          searchDebug: event.searchDebug || null,
+          search: event.search || null,
+        }));
+      sendJson(res, 200, { ok: true, provider: storageProvider(), count: debug.length, debug });
+    } catch (error) {
+      sendJson(res, 500, { ok: false, provider: storageProvider(), error: error.message || 'failed to read search debug log' });
+    }
+    return true;
+  }
+
   if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/feedback') {
     if (req.method === 'POST') {
       try {
@@ -301,6 +344,8 @@ async function handleApi(req, res, pathname) {
       let provider = 'openai-api';
       let model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
       let search = null;
+      let searchDecision = null;
+      let dialogueError = null;
       let skill = routeSkill(message);
       let mcp = matchMcpTools(message);
       const location = sanitizeLocation(parsed.location);
@@ -310,14 +355,40 @@ async function handleApi(req, res, pathname) {
         provider = reply.provider || provider;
         model = reply.model;
         search = reply.search || null;
+        searchDecision = reply.searchDecision || search?.decision || null;
         skill = reply.skill || skill;
         mcp = reply.mcp || mcp;
       } catch (error) {
+        dialogueError = error;
         provider = 'codex-app-server';
         try {
           subtitle = await codexBridge.ask(message);
         } catch (codexError) {
           provider = 'scripted-fallback';
+          dialogueError = codexError;
+        }
+        const draftSubtitle =
+          subtitle ||
+          (message.length > 0
+            ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
+            : scene.subtitle);
+        const fallbackDecision = await decideSearchAfterReply(message, draftSubtitle);
+        searchDecision = fallbackDecision;
+        if (!subtitle && fallbackDecision.needsSearch) {
+          try {
+            search = await searchGoogle(fallbackDecision.query, { limit: 4 });
+          } catch (searchError) {
+            search = {
+              provider: 'google-search-ts',
+              query: fallbackDecision.query,
+              searchUrl: `https://www.google.com/search?q=${encodeURIComponent(fallbackDecision.query)}`,
+              results: [],
+              error: searchError.message || 'Google search failed',
+            };
+          }
+          search.decision = fallbackDecision;
+          provider = 'google-search';
+          subtitle = createSearchSubtitle(search);
         }
       }
       if (!subtitle) {
@@ -326,6 +397,7 @@ async function handleApi(req, res, pathname) {
             ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
             : scene.subtitle;
       }
+      const searchDebug = createSearchDebug({ message, provider, search, searchDecision, skill, error: dialogueError });
       const responsePayload = {
         ok: true,
         provider,
@@ -346,6 +418,7 @@ async function handleApi(req, res, pathname) {
         mcp,
         location,
       };
+      if (parsed.debug || process.env.SEARCH_DEBUG === '1') responsePayload.debug = { searchRouting: searchDebug };
       const event = createConversationEvent({
         sessionId: responsePayload.sessionId,
         userMessage: message,
@@ -354,6 +427,7 @@ async function handleApi(req, res, pathname) {
         model: responsePayload.model,
         status: responsePayload.reply.status,
         search,
+        searchDebug,
         skill,
         mcp,
         location,

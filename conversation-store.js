@@ -31,6 +31,18 @@ function createConversationEvent(input) {
           query: safeText(input.search.query, '', 240),
           resultCount: Array.isArray(input.search.results) ? input.search.results.length : 0,
           decision: input.search.decision || null,
+      }
+      : null,
+    searchDebug: input.searchDebug
+      ? {
+          message: safeText(input.searchDebug.message, '', 500),
+          draftReply: safeText(input.searchDebug.draftReply, '', 500),
+          provider: safeText(input.searchDebug.provider, '', 80),
+          skillId: safeText(input.searchDebug.skillId, '', 80),
+          hasSearch: Boolean(input.searchDebug.hasSearch),
+          resultCount: Number(input.searchDebug.resultCount || 0),
+          decision: input.searchDebug.decision || null,
+          error: safeText(input.searchDebug.error, '', 240),
         }
       : null,
     skill: input.skill

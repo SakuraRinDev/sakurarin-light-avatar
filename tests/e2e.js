@@ -90,11 +90,13 @@ async function testApi() {
 
   const searchDialogue = await json('/api/dialogue', {
     method: 'POST',
-    body: JSON.stringify({ sessionId: `${sessionId}_search`, message: 'OpenAIって何が新しいの' }),
+    body: JSON.stringify({ sessionId: `${sessionId}_search`, message: 'OpenAIって何が新しいの', debug: true }),
   });
   assert.equal(searchDialogue.ok, true);
   assert.equal(searchDialogue.provider, 'google-search');
   assert.equal(Boolean(searchDialogue.search), true);
+  assert.equal(searchDialogue.debug?.searchRouting?.decision?.needsSearch, true);
+  assert.equal(searchDialogue.debug?.searchRouting?.hasSearch, true);
 
   const localDialogue = await json('/api/dialogue', {
     method: 'POST',
@@ -131,6 +133,11 @@ async function testApi() {
   assert.equal(locationDialogue.ok, true);
   assert.equal(locationDialogue.skill?.id, 'location-context');
   assert.deepEqual(locationDialogue.location, { latitude: 35.681, longitude: 139.767, accuracy: 12 });
+
+  const searchDebug = await json('/api/search-debug?limit=20');
+  assert.equal(searchDebug.ok, true);
+  assert.ok(searchDebug.debug.some((entry) => entry.sessionId === `${sessionId}_search`));
+  assert.ok(searchDebug.debug.some((entry) => entry.searchDebug?.decision));
 }
 
 async function testBrowser() {

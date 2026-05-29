@@ -42,6 +42,24 @@ function pickReply(message, scenes) {
   return scenes[Math.floor(Math.random() * scenes.length)];
 }
 
+function wantsDebug(req) {
+  return Boolean(req.body?.debug || req.query?.debug === '1' || process.env.SEARCH_DEBUG === '1');
+}
+
+function createSearchDebug({ message, provider, search, searchDecision, skill, error }) {
+  const decision = searchDecision || search?.decision || null;
+  return {
+    message,
+    draftReply: decision?.draftReply || '',
+    provider,
+    skillId: skill?.id || '',
+    hasSearch: Boolean(search),
+    resultCount: Array.isArray(search?.results) ? search.results.length : 0,
+    decision,
+    error: error?.message || '',
+  };
+}
+
 async function sendDialogue(req, res) {
   const scenes = readJson('scenes.json');
   const message = safeText(req.body && req.body.message, 'こんにちは');
@@ -50,6 +68,8 @@ async function sendDialogue(req, res) {
   let provider = 'openai-api';
   let model = DEFAULT_MODEL;
   let search = null;
+  let searchDecision = null;
+  let dialogueError = null;
   let skill = routeSkill(message);
   let mcp = matchMcpTools(message);
   const location = sanitizeLocation(req.body && req.body.location);
@@ -59,28 +79,31 @@ async function sendDialogue(req, res) {
     provider = reply.provider || provider;
     model = reply.model;
     search = reply.search || null;
+    searchDecision = reply.searchDecision || search?.decision || null;
     skill = reply.skill || skill;
     mcp = reply.mcp || mcp;
   } catch (error) {
+    dialogueError = error;
     provider = 'scripted-fallback';
     const draftSubtitle =
       message.length > 0
         ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
         : scene.subtitle;
-    const searchDecision = await decideSearchAfterReply(message, draftSubtitle);
-    if (searchDecision.needsSearch) {
+    const fallbackDecision = await decideSearchAfterReply(message, draftSubtitle);
+    searchDecision = fallbackDecision;
+    if (fallbackDecision.needsSearch) {
       try {
-        search = await searchGoogle(searchDecision.query, { limit: 4 });
+        search = await searchGoogle(fallbackDecision.query, { limit: 4 });
       } catch (searchError) {
         search = {
           provider: 'google-search-ts',
-          query: searchDecision.query,
-          searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchDecision.query)}`,
+          query: fallbackDecision.query,
+          searchUrl: `https://www.google.com/search?q=${encodeURIComponent(fallbackDecision.query)}`,
           results: [],
           error: searchError.message || 'Google search failed',
         };
       }
-      search.decision = searchDecision;
+      search.decision = fallbackDecision;
       subtitle = createSearchSubtitle(search);
       provider = 'google-search';
     }
@@ -91,6 +114,7 @@ async function sendDialogue(req, res) {
         ? `${scene.subtitle} 「${message}」って言われたので、今ちょっと張り切っています。`
         : scene.subtitle;
   }
+  const searchDebug = createSearchDebug({ message, provider, search, searchDecision, skill, error: dialogueError });
   const responsePayload = {
     ok: true,
     provider,
@@ -111,6 +135,7 @@ async function sendDialogue(req, res) {
     mcp,
     location,
   };
+  if (wantsDebug(req)) responsePayload.debug = { searchRouting: searchDebug };
 
   const event = createConversationEvent({
     sessionId: responsePayload.sessionId,
@@ -120,6 +145,7 @@ async function sendDialogue(req, res) {
     model: responsePayload.model,
     status: responsePayload.reply.status,
     search,
+    searchDebug,
     skill,
     mcp,
     location,
@@ -135,6 +161,30 @@ async function sendDialogue(req, res) {
   }
 
   res.status(200).json(responsePayload);
+}
+
+async function sendSearchDebug(req, res) {
+  try {
+    const limit = req.method === 'GET' ? req.query?.limit : req.body?.limit;
+    const events = await listConversationEvents(limit || 30);
+    const debug = events
+      .filter((event) => event.searchDebug || event.search)
+      .map((event) => ({
+        id: event.id,
+        createdAt: event.createdAt,
+        sessionId: event.sessionId,
+        provider: event.provider,
+        searchDebug: event.searchDebug || null,
+        search: event.search || null,
+      }));
+    res.status(200).json({ ok: true, provider: storageProvider(), count: debug.length, debug });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: storageProvider(),
+      error: error.message || 'failed to read search debug log',
+    });
+  }
 }
 
 function sendSkills(req, res) {
@@ -257,5 +307,6 @@ module.exports = {
   sendMcp,
   sendMcpManifest,
   sendSearch,
+  sendSearchDebug,
   sendSkills,
 };
