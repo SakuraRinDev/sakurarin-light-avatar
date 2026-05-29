@@ -50,6 +50,18 @@ async function askOpenAI(message, options = {}) {
   const location = sanitizeLocation(options.location);
 
   const apiKey = process.env.OPENAI_API_KEY;
+  if (skill?.id === 'phonebook-flow') {
+    return {
+      provider: 'app-skill',
+      model: options.model || DEFAULT_MODEL,
+      subtitle: '左下の電話ボタンから連絡先を開けるよ。発信は端末に任せるね。',
+      search: null,
+      skill,
+      mcp: mcpTools,
+      location,
+    };
+  }
+
   if (!apiKey) {
     const searchDecision = await decideSearch(message, { timeoutMs: options.routerTimeoutMs || 3500 });
     if (searchDecision.needsSearch) {

@@ -111,6 +111,15 @@ async function testApi() {
   assert.equal(skillDialogue.skill?.id, 'frontend-design');
   assert.equal(skillDialogue.mcp?.[0]?.name, 'poka_create_feedback');
 
+  const phoneDialogue = await json('/api/dialogue', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId: `${sessionId}_phone`, message: '電話帳を開きたい' }),
+  });
+  assert.equal(phoneDialogue.ok, true);
+  assert.equal(phoneDialogue.provider, 'app-skill');
+  assert.equal(phoneDialogue.skill?.id, 'phonebook-flow');
+  assert.match(phoneDialogue.reply?.subtitle, /電話ボタン|連絡先/);
+
   const locationDialogue = await json('/api/dialogue', {
     method: 'POST',
     body: JSON.stringify({
