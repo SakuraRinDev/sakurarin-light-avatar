@@ -559,7 +559,7 @@ input {
   bottom: 3%;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(4, auto);
+  grid-template-columns: repeat(5, auto);
   gap: 5px;
   padding: 5px;
   border: 1px solid rgba(255,255,255,0.68);
@@ -592,6 +592,16 @@ input {
   color: rgba(84, 54, 45, 0.92);
   background: rgba(255,255,255,0.84);
   box-shadow: 0 7px 18px rgba(185, 129, 98, 0.16);
+}
+
+.baby-motion-switch__button--auto {
+  color: #8f5b8f;
+  background: rgba(255, 233, 250, 0.42);
+}
+
+.baby-motion-switch__button--auto.is-active {
+  color: #7d3d7b;
+  background: rgba(255, 222, 250, 0.88);
 }
 
 body.character-moko .avatar::before,
@@ -1613,11 +1623,11 @@ body.character-moko[data-baby-motion="sparkle"] .baby-gif__cheek {
   .baby-motion-switch {
     bottom: 1%;
     max-width: calc(100vw - 28px);
-    grid-template-columns: repeat(4, minmax(0, auto));
+    grid-template-columns: repeat(5, minmax(0, auto));
   }
 
   .baby-motion-switch__button {
-    min-width: 42px;
+    min-width: 40px;
     min-height: 26px;
     padding: 0 7px;
     font-size: 11px;
@@ -1797,9 +1807,9 @@ body.character-moko[data-baby-motion="sparkle"] .baby-gif__cheek {
   }
 
   .baby-motion-switch__button {
-    min-width: 38px;
+    min-width: 34px;
     padding: 0 6px;
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .avatar {

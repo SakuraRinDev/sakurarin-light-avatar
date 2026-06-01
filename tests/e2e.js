@@ -214,6 +214,29 @@ async function testBrowser() {
       assert.equal(motionState.active, motionName);
       assert.ok(motionState.visible > 0.5);
     }
+    await page.click('[data-baby-motion-auto]');
+    await page.waitForFunction(() => document.querySelector('[data-baby-motion-auto]')?.getAttribute('aria-pressed') === 'true', null, {
+      timeout: 5000,
+    });
+    const autoStart = await page.evaluate(() => document.body.dataset.babyMotion);
+    await page.waitForFunction((start) => document.body.dataset.babyMotion !== start, autoStart, {
+      timeout: 3500,
+    });
+    const autoState = await page.evaluate(() => ({
+      enabled: document.querySelector('[data-baby-motion-auto]')?.classList.contains('is-active'),
+      motion: document.body.dataset.babyMotion,
+      noHorizontalScroll: document.documentElement.scrollWidth === document.documentElement.clientWidth,
+    }));
+    assert.equal(autoState.enabled, true);
+    assert.ok(motionNames.includes(autoState.motion));
+    assert.equal(autoState.noHorizontalScroll, true);
+
+    const manualMotion = autoState.motion === 'bounce' ? 'wave' : 'bounce';
+    await page.click(`[data-baby-motion="${manualMotion}"]`);
+    await page.waitForFunction(() => document.querySelector('[data-baby-motion-auto]')?.getAttribute('aria-pressed') === 'false', null, {
+      timeout: 5000,
+    });
+    assert.equal(await page.locator('[data-baby-motion-auto]').getAttribute('aria-pressed'), 'false');
 
     await page.click('[data-character="poka"]');
     await page.waitForFunction(() => document.body.classList.contains('character-poka'), null, {
