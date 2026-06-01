@@ -20,6 +20,7 @@ const {
 const { routeSkill } = require('../skill-router');
 const { loadSkills } = require('../skill-router');
 const { decideSearchAfterReply } = require('../search-router');
+const { getUsageSummary } = require('../usage-monitor');
 
 const rootDir = path.join(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
@@ -194,6 +195,20 @@ async function sendSearchDebug(req, res) {
   }
 }
 
+async function sendUsage(req, res) {
+  try {
+    const limit = req.method === 'GET' ? req.query?.limit : req.body?.limit;
+    const usage = await getUsageSummary(limit || 200);
+    res.status(200).json(usage);
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: storageProvider(),
+      error: error.message || 'failed to read usage summary',
+    });
+  }
+}
+
 function sendSkills(req, res) {
   const message = req.method === 'GET' ? req.query?.q : req.body?.message;
   res.status(200).json({
@@ -316,4 +331,5 @@ module.exports = {
   sendSearch,
   sendSearchDebug,
   sendSkills,
+  sendUsage,
 };

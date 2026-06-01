@@ -17,6 +17,7 @@
   const skillEl = document.getElementById("skill-label");
   const mcpEl = document.getElementById("mcp-label");
   const statusEl = document.getElementById("status-label");
+  const usageAlertEl = document.getElementById("usage-alert");
   const avatarBox = document.getElementById("avatar");
   const sceneEl = document.querySelector(".scene");
   const form = document.getElementById("compose");
@@ -37,6 +38,26 @@
 
   if (soundToggle) {
     audio?.init();
+  }
+
+  async function refreshUsageAlert() {
+    if (!usageAlertEl) return;
+    try {
+      const res = await fetch("/api/usage?limit=200", { headers: { accept: "application/json" } });
+      if (!res.ok) throw new Error(`usage ${res.status}`);
+      const usage = await res.json();
+      usageAlertEl.classList.remove("is-warning", "is-critical", "is-muted");
+      if (usage.level === "critical") usageAlertEl.classList.add("is-critical");
+      else if (usage.level === "warning") usageAlertEl.classList.add("is-warning");
+      const label = usage.alert
+        ? `API ${usage.level === "critical" ? "危険" : "注意"} ${usage.counts.openai1h}/${usage.limits.openai1h}`
+        : `API OK ${usage.counts.openai1h}/${usage.limits.openai1h}`;
+      usageAlertEl.textContent = label;
+      usageAlertEl.title = `10分:${usage.counts.total10m}/${usage.limits.total10m} OpenAI1h:${usage.counts.openai1h}/${usage.limits.openai1h} Search1h:${usage.counts.search1h}/${usage.limits.search1h}`;
+    } catch {
+      usageAlertEl.classList.add("is-muted");
+      usageAlertEl.textContent = "API ?";
+    }
   }
 
   const characters = {
@@ -525,6 +546,7 @@
     setSkill(skill);
     setMcp(mcp);
     setSubtitle(reply, source);
+    refreshUsageAlert();
     input.value = "";
     sendBtn.disabled = false;
     input.focus();
@@ -534,4 +556,6 @@
   setTimeout(() => {
     setSpeaking(2200);
   }, 600);
+  refreshUsageAlert();
+  setInterval(refreshUsageAlert, 60 * 1000);
 })();

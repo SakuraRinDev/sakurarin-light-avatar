@@ -22,6 +22,7 @@ const {
 const { routeSkill } = require('./skill-router');
 const { loadSkills } = require('./skill-router');
 const { decideSearchAfterReply } = require('./search-router');
+const { getUsageSummary } = require('./usage-monitor');
 
 const rootDir = __dirname;
 const dataDir = path.join(rootDir, 'data');
@@ -287,6 +288,23 @@ async function handleApi(req, res, pathname) {
       sendJson(res, 200, { ok: true, provider: storageProvider(), count: debug.length, debug });
     } catch (error) {
       sendJson(res, 500, { ok: false, provider: storageProvider(), error: error.message || 'failed to read search debug log' });
+    }
+    return true;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && pathname === '/api/usage') {
+    try {
+      let limit = 200;
+      if (req.method === 'GET') {
+        limit = new URL(req.url, `http://${req.headers.host}`).searchParams.get('limit') || 200;
+      } else {
+        const body = await readBody(req);
+        const parsed = JSON.parse(body || '{}');
+        limit = parsed.limit || 200;
+      }
+      sendJson(res, 200, await getUsageSummary(limit));
+    } catch (error) {
+      sendJson(res, 500, { ok: false, provider: storageProvider(), error: error.message || 'failed to read usage summary' });
     }
     return true;
   }

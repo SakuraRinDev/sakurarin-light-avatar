@@ -56,6 +56,12 @@ async function testApi() {
   assert.equal(mcpManifest.ok, true);
   assert.ok(mcpManifest.manifest.tools.some((tool) => tool.name === 'poka_route_skill'));
 
+  const usage = await json('/api/usage?limit=100');
+  assert.equal(usage.ok, true);
+  assert.ok(['ok', 'warning', 'critical'].includes(usage.level));
+  assert.equal(typeof usage.counts.openai1h, 'number');
+  assert.equal(typeof usage.limits.openai1h, 'number');
+
   const sessionId = `test_${Date.now()}`;
   const dialogue = await json('/api/dialogue', {
     method: 'POST',
@@ -175,11 +181,13 @@ async function testBrowser() {
       isMoko: document.body.classList.contains('character-moko'),
       active: document.querySelector('.character-switch__button.is-active')?.dataset.character,
       babyVisible: getComputedStyle(document.querySelector('.baby-gif')).opacity,
+      usageAlert: document.querySelector('#usage-alert')?.textContent,
     }));
     assert.equal(initialCharacter.isPoka, true);
     assert.equal(initialCharacter.isMoko, false);
     assert.equal(initialCharacter.active, 'poka');
     assert.equal(initialCharacter.babyVisible, '0');
+    assert.match(initialCharacter.usageAlert, /API/);
 
     await page.click('[data-character="moko"]');
     await page.waitForFunction(() => document.body.classList.contains('character-moko'), null, {
